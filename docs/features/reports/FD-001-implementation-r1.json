@@ -1,0 +1,61 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "worker-report",
+  "fd_id": "FD-001",
+  "source_event": "FD-001-000003-design-ready",
+  "human_report": "FD-001-implementation-r1.md",
+  "data": {
+    "summary": "Standalone Go CLI replaces Java CLI; all 10 work items implemented, pending independent review.",
+    "worker_session": "fd001-worker-20261015-2f9c053a",
+    "base_commit": "c7098dd",
+    "changed_paths": [
+      "cli/",
+      "pom.xml",
+      "README.md",
+      "docs/PG-EventBus.md",
+      "docs/pg-eventbus-schema-and-cli-addendum.md",
+      "docs/features/FD-001_MIGRATE_CLI_TO_GO.md",
+      "docs/templates/REPORT_DATA_TEMPLATE.json"
+    ],
+    "commands": [
+      {
+        "command": "go mod download; go mod download all",
+        "result": "passed after explicit dependency-download approval"
+      },
+      {
+        "command": "GOPROXY=off go mod tidy",
+        "result": "failed: historical transitive dependency metadata absent"
+      },
+      {
+        "command": "go mod tidy",
+        "result": "passed under explicit download authorization; versions and sums pinned"
+      },
+      {
+        "command": "GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=off go build -o ../.cache/compile/pg-eventbus-cli.exe .",
+        "result": "passed twice; final repetition followed a source correction; executable not run"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed"
+      },
+      {
+        "command": "git diff --name-only c7098dd -- gateway client docs/sql",
+        "result": "no changes"
+      },
+      {
+        "command": "git show baseline SQL; static function-text comparison",
+        "result": "20 function bodies identical"
+      },
+      {
+        "command": "javap -c -private on local Jackson 2.19.2 jars",
+        "result": "default numeric Instant/nanosecond encoding and DecimalUtils reviewed"
+      }
+    ],
+    "results": [
+      "AC-01 through AC-10 mapped to actual source in Markdown",
+      "no tests, program execution, database operations, Linux build, benchmarks or release builds run",
+      "no active blocker; dependency authorization resolved"
+    ],
+    "residual_risk": "PostgreSQL behavior and Windows/Linux runtime portability remain unverified; compile-only and static evidence do not prove runtime behavior."
+  }
+}

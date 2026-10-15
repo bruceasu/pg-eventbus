@@ -1,0 +1,40 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "worker-report",
+  "fd_id": "FD-001",
+  "source_event": "FD-001-000005-changes-requested",
+  "human_report": "FD-001-implementation-r2.md",
+  "data": {
+    "summary": "Repair R1-01 unsupported Spring environment controls and R1-02 historical SQL path; await second independent outcome.",
+    "worker_session": "fd001-worker-20261015-2f9c053a",
+    "repair_commit": "a239ce2",
+    "review_outcomes_before_handoff": 1,
+    "changed_paths": [
+      "cli/internal/app/config.go",
+      "cli/README.md",
+      "docs/pg-eventbus-schema-and-cli-addendum.md",
+      "docs/features/FD-001_MIGRATE_CLI_TO_GO.md"
+    ],
+    "commands": [
+      {
+        "command": "aiw fd claim FD-001 FD-001-000005-changes-requested --session fd001-worker-20261015-2f9c053a",
+        "result": "claimed exact pending Worker handoff"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed"
+      },
+      {
+        "command": "GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=off go build -o ../.cache/compile/pg-eventbus-cli.exe .",
+        "result": "passed after repair; repeated after Windows name handling change; final code passes"
+      }
+    ],
+    "results": [
+      "R1-01 addressed by preconnection reserved environment-name rejection, explicit empty settings included; fixed redacted diagnostic and exit 2",
+      "DRIVER_CLASS_NAME accepted only as org.postgresql.Driver",
+      "R1-02 historical SQL source path restored; stable child work item IDs added",
+      "no tests/application/database/Linux/release/formatter/linter/benchmark execution; no new network calls"
+    ],
+    "residual_risk": "Runtime PostgreSQL transactions, cancellation, TLS, JSONB/time behavior and cross-platform runtime remain unverified."
+  }
+}

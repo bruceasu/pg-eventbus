@@ -4,7 +4,7 @@
     <groupId>me.asu</groupId><artifactId>pg-eventbus</artifactId><version>0.0.1-SNAPSHOT</version><packaging>pom</packaging>
     <!-- Convenience aggregator only; projects do not inherit or depend on it. -->
     <modules>
-        <module>cli</module><module>gateway</module>
+        <module>gateway</module>
         <module>client/java/db</module><module>client/java/gateway</module>
     </modules>
 </project>

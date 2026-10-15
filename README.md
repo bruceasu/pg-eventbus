@@ -10,12 +10,12 @@
 |---|---|
 | `client/java/db` | 独立 Java 直连客户端，包含自身 JDBC、服务及 DTO |
 | `client/java/gateway` | 独立 Java Gateway 客户端，通过 JDK HTTP 调用网关 |
-| `cli` | 独立维护程序，自带初始化 SQL，通过 JDBC 执行 SQL |
+| `cli` | 独立 Go 维护程序，自带初始化 SQL，通过 pgx 执行 SQL |
 | `gateway` | 独立 HTTP 服务，直接通过 JDBC 调用数据库函数 |
 | `client/go/db` / `client/python/db` | 通过外部 `psql` 命令访问数据库 |
 | `client/go/gateway` / `client/python/gateway` | 调用网关的 Go / Python 客户端 |
 
-客户端统一放在 `client/<语言>/db` 和 `client/<语言>/gateway`。CLI、Gateway 和客户端互不依赖；原 core、jdbc、contract 已合并到 Java 直连客户端，不再作为独立模块。CLI 与 Gateway 各自维护 JDBC 调用，不使用 ORM。
+客户端统一放在 `client/<语言>/db` 和 `client/<语言>/gateway`。CLI、Gateway 和客户端互不依赖；原 core、jdbc、contract 已合并到 Java 直连客户端，不再作为独立模块。CLI 使用 Go/pgx，Gateway 保持 Java/JDBC，均不使用 ORM。
 
 ## 构建
 
@@ -25,18 +25,21 @@ Java 项目要求 **JDK 25**，使用 Spring Boot 3.5.4。根 POM 仅聚合构�
 .\mvnw.cmd clean install
 ```
 
-也可使用已安装的 Maven 执行 `mvn clean install`。Go 模块声明 Go 1.22，Python 包要求 Python 3.10+；它们不属于 Maven reactor。
+也可使用已安装的 Maven 执行 `mvn clean install`。Go 客户端要求 Go 1.22，CLI 要求 Go 1.25，Python 包要求 Python 3.10+；它们不属于 Maven reactor。
 
-CLI 与 Gateway 可分别独立构建，`package` 自动生成包含依赖的可执行 JAR，无需先构建或安装任何项目内模块：
+Gateway 可单独通过 Maven 生成可执行 JAR；CLI 使用 Go 独立构建，无需 JVM 或项目内模块：
 
 ```powershell
-.\mvnw.cmd -f cli/pom.xml clean package
 .\mvnw.cmd -f gateway/pom.xml clean package
+cd cli
+$env:GOTOOLCHAIN = 'local'
+$env:CGO_ENABLED = '0'
+go build -o bin/pg-eventbus-cli.exe .
 ```
 
 ## 配置
 
-在运行目录准备 `application.yml`，或使用对应的 Spring 环境变量：
+Java 应用在运行目录准备 `application.yml`，或使用对应的 Spring 环境变量。下面是 Java 配置；Go CLI 只接受其数据源、schema、批大小与 TTL 子集，示例见 [CLI 说明](cli/README.md)：
 
 ```yaml
 spring:
@@ -62,22 +65,22 @@ Go/Python 直连客户端使用 `PGEVENTBUS_SCHEMA` 和外部命令的连接配�
 
 先创建 PostgreSQL 数据库和授权角色。初始化时使用具有建 schema、表、函数及授权权限的数据库账号；`db init app_role` 中的 `app_role` 是授权对象，不会创建角色或数据库。
 
-以下 PowerShell 示例使用显式打包后的 CLI JAR：
+以下 PowerShell 示例从仓库根目录调用 Go CLI：
 
 ```powershell
-$cliJar = 'cli/target/pg-eventbus-cli-0.0.1-SNAPSHOT.jar'
-java -jar $cliJar db init app_role
-java -jar $cliJar partition ensure-current
-java -jar $cliJar partition ensure-future
-java -jar $cliJar event send source-a consumer-a price-update '{}'
-java -jar $cliJar event get consumer-a instance-a 100
+$cli = '.\cli\bin\pg-eventbus-cli.exe'
+& $cli db init app_role
+& $cli partition ensure-current
+& $cli partition ensure-future
+& $cli event send source-a consumer-a price-update '{}'
+& $cli event get consumer-a instance-a 100
 # 处理成功后，将末条已成功处理事件的 ID 替换到命令中
-java -jar $cliJar event set-cursor consumer-a instance-a 12345
+& $cli event set-cursor consumer-a instance-a 12345
 ```
 
 `db init` 执行随 CLI 打包的 `init.sql`，安装表、函数并授权；它本身不预建分区。发布函数会确保当前分区存在。`ensure-future` 创建未来 6 个月分区。
 
-SQL 对象引用不带 schema 前缀。手动安装时，在 `init.sql` 开头的 `CREATE SCHEMA` 和 `SET LOCAL search_path` 两处指定目标 schema，并替换授权角色 `app_role`；CLI 使用 `BUS_SCHEMA` 或 `bus.schema` 自动选择。具体步骤见[初始化说明](docs/pg-eventbus-schema-and-cli-addendum.md#数据库初始化)。
+SQL 对象引用不带 schema 前缀。手动安装使用 `docs/sql/` 拆分脚本，在 bootstrap.sql 开头选择 schema 并调整授权角色；CLI 的 `sql/init.sql` 是内嵌安装模板，通过 `BUS_SCHEMA` 或 `--bus.schema` 渲染。具体步骤见[初始化说明](docs/pg-eventbus-schema-and-cli-addendum.md#数据库初始化)。
 
 `targetSystem` 必须与消费者名称一致才会被该消费者拉取；SQL 中空目标（`NULL`）表示广播。`poll` 不自动提交位点，业务处理完成后才调用 `commit`。Java/网关的拉取会获取租约锁，提交要求同一实例持有未过期锁。提交不会释放锁，租约未到期时再次拉取（即使同一实例）也会拿锁失败。
 

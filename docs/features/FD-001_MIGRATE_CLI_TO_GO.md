@@ -1,7 +1,7 @@
 # FD-001: 将维护 CLI 迁移到 Go
 
-**Status:** Open
-**Revision:** 3
+**Status:** Complete
+**Revision:** 7
 **Priority:** Medium
 **Evidence policy:** Dual
 **Effort:** High（多个独立小项；单项预计不超过半天）
@@ -86,7 +86,7 @@ cli/
 
 ### 初始化脚本与事务
 
-- 将 `cli/src/main/resources/init.sql` 迁至 `cli/sql/init.sql`，由 `go:embed` 编译进程序；运行时不依赖仓库或外部 SQL 文件。`docs/sql/` 仍是现有拆分脚本来源，函数集合、顺序和定义不在本 FD 中改写。
+- 将原 `cli/src/main/resources/init.sql` 迁至 `cli/sql/init.sql`，由 `go:embed` 编译进程序；运行时不依赖仓库或外部 SQL 文件。`docs/sql/` 仍是现有拆分脚本来源，函数集合、顺序和定义不在本 FD 中改写。
 - 安装 schema 的两条语句、grant 角色改成有明确位置的渲染标记；仅渲染这些安装参数，不对整个脚本做 `bus` / owner 的无差别单词替换。标识符与 DO 块内 SQL 字符串按其不同语境编码，不能把 quote-identifier 的结果无处理地嵌入 SQL 字符串。
 - 保留未带 schema 前缀的对象引用、事务内 `SET LOCAL search_path` 和函数的 `SET search_path FROM CURRENT`；选择非默认 schema 后，授权与函数后续分区操作必须落在该 schema。
 - 完整多语句脚本通过同一物理连接、支持该执行方式的 pgx simple protocol 执行；不能按分号切分 PL/pgSQL 的 `$$` 函数或 DO 块。脚本自身已有 `BEGIN/COMMIT`，不再添加一层隐式嵌套事务。
@@ -132,19 +132,23 @@ CLI 支持从仅包含 `cli/` 源码与 module 文件的目录独立构建。目
 | 1.8 | 租约拉取命令 | 小 / 中 / ≤半天 | 1.3、1.4 | limit 回退正确；先获锁，失败不读事件；成功才 poll；保留结果字段，不自动提交/释放锁 |
 | 1.9 | 构建入口切换与迁移文档 | 小 / 中 / ≤半天 | 1.5—1.8 | 删除 Java CLI 及根聚合项，CLI 可脱离仓库构建；文档完整列出配置与输出变化、Windows/Linux 构建和回退方式 |
 | 1.10 | 静态核对与实现证据 | 小 / 低 / ≤2小时 | 1.9 | 逐项关联下列验收与实际改动，执行一次授权范围内 compile-only 检查；记录未运行项、局限及 Dual 报告，交独立 Reviewer |
+| 1.2.1 | R1-01 环境控制边界修复 | 小 / 低 / ≤2小时 | 1.2 | 连库前拒绝显式配置的 profiles/config/application-json 及未支持 datasource 环境项，包含空值；支持 PostgreSQL driver 环境项且无敏感值输出 |
+| 1.10.1 | R1 修复证据与重新交接 | 小 / 低 / ≤1小时 | 1.2.1 | 更新 Dual 证据、历史路径说明，修复后 compile-only 与静态核验，再请求独立评审；原 R1 保留为历史 |
 
 ### TODO
 
-- [ ] 1.1 Go module、入口与语法。
-- [ ] 1.2 配置加载与 URL 兼容。
-- [ ] 1.3 连接、绑定与取消。
-- [ ] 1.4 结果模型与输出。
-- [ ] 1.5 原子初始化。
-- [ ] 1.6 维护命令。
-- [ ] 1.7 发布、提交及恢复。
-- [ ] 1.8 租约拉取。
-- [ ] 1.9 构建切换与文档。
-- [ ] 1.10 静态核对及证据。
+- [x] 1.1 Go module、入口与语法。
+- [x] 1.2 配置加载与 URL 兼容。
+- [x] 1.3 连接、绑定与取消。
+- [x] 1.4 结果模型与输出。
+- [x] 1.5 原子初始化。
+- [x] 1.6 维护命令。
+- [x] 1.7 发布、提交及恢复。
+- [x] 1.8 租约拉取。
+- [x] 1.9 构建切换与文档。
+- [x] 1.10 静态核对及证据。
+- [x] 1.2.1 修复 R1-01 保留 Spring 环境控制项静默忽略问题。
+- [x] 1.10.1 记录 R1 修复证据并重新交接。
 
 ## Acceptance
 
@@ -186,10 +190,38 @@ CLI 支持从仅包含 `cli/` 源码与 module 文件的目录独立构建。目
 - Planner session: `fd001-planner-20261015-61fcae7b`。
 - 设计结果：已明确范围、技术选择、兼容影响、独立工作项及 Verification；无待人决策的 material input Gate。完成设计后发出 `design-ready`，仅留下待处理 Worker handoff，不自动开始实现。
 
+### Worker evidence
+
+- Worker session: `fd001-worker-20261015-2f9c053a`.
+- Source event: `FD-001-000003-design-ready`.
+- Scope authorization: user subsequently requested `fd-001 auto`, authorizing isolated implementation, local commits, review, local merge and archive. Dependency network access was separately approved in this conversation.
+- All 10 items implemented. Final Windows compile-only check passed with GOTOOLCHAIN=local, CGO_ENABLED=0 and GOPROXY=off. Tests, application execution, database integration, Linux verification and release builds were not run.
+- Evidence: `docs/features/reports/FD-001-implementation-r1.md` and its JSON sidecar. Static SQL comparison found all 20 function bodies unchanged. Legacy Instant numeric encoding was checked against local Jackson bytecode.
+- No unresolved input Gate or active blocker. Reviewer outcome pending; do not treat Worker evidence as independent verification.
+
+### Reviewer R1
+
+- Reviewer session: `fd001-reviewer-20261015-83ea1c9f`; source event: `FD-001-000004-implementation-ready`; reviewed implementation: `0649490` against `c7098dd`.
+- Outcome: **changes-requested**, first Reviewer outcome in this cycle. R1-01: reserved Spring environment controls are silently ignored, violating AC-03/AC-08; reject these before connecting, retaining explicitly supported datasource variables. R1-02 is a nonblocking historical SQL source-path correction.
+- Evidence: `docs/features/reviews/FD-001-review-r1.md` and same-basename JSON. No tests, application/database execution or additional build performed. Runtime and platform risks remain as recorded.
+
+### Worker R1 repair evidence
+
+- Source event `FD-001-000005-changes-requested`, same Worker session `fd001-worker-20261015-2f9c053a`.
+- R1-01 and R1-02 addressed in `a239ce2`; child items 1.2.1 and 1.10.1 added without erasing earlier history.
+- Final repaired source passes the same offline, local-toolchain, CGO-disabled compile-only command. No tests or application/database/platform execution.
+- Report: `docs/features/reports/FD-001-implementation-r2.md` plus JSON. R1 remains historical; next independent Reviewer outcome pending. No acceptance or test policy waived.
+
+### Reviewer R2
+
+- Reviewer session: `fd001-reviewer-20261015-83ea1c9f`; source event: `FD-001-000006-implementation-ready`; reviewed HEAD `344246e`, repair `a239ce2`, baseline `c7098dd`.
+- Outcome: **verification-passed**, second Reviewer outcome in this cycle. R1-01 and R1-02 resolved; no remaining blocking finding or acceptance waiver. Original R1 remains historical.
+- Evidence: `docs/features/reviews/FD-001-review-r2.md` plus JSON. Static review and recorded Worker compile-only evidence satisfy the FD verification policy; no tests, application/database execution, extra compilation or platform runtime checks were performed by Reviewer. Recorded runtime risks remain.
+
 ## Sources
 
 - Issue: none
 - 用户请求：本会话“创建一个迁移 CLI 到 Go 的 FD”，前序关于 CLI 独立、无 ORM 与 Go 迁移的讨论。
-- [当前 CLI 说明](../../cli/README.md)、[CLI runner](../../cli/src/main/java/me/asu/pg_eventbus/cli/PgEventBusCliRunner.java)、[数据库调用](../../cli/src/main/java/me/asu/pg_eventbus/cli/CliDatabase.java)、[初始化脚本](../../cli/src/main/resources/init.sql)。这些是迁移前路径，实施完成后更新为实际实现路径并保留历史基线引用。
+- [当前 CLI 说明](../../cli/README.md)、[CLI runner](../../cli/internal/app/command.go)、[数据库调用](../../cli/internal/db/events.go)、[初始化脚本](../../cli/sql/init.sql)。这些是迁移前路径，实施完成后更新为实际实现路径并保留历史基线引用。
 - [配置与初始化指南](../pg-eventbus-schema-and-cli-addendum.md)、[数据库语义](../PG-EventBus.md)、[根 POM](../../pom.xml)。
 - 技术接口参考：[pgx](https://pkg.go.dev/github.com/jackc/pgx/v5)、[Go embed](https://pkg.go.dev/embed)。本阶段未访问网络或锁定浮动依赖版本。

@@ -1,0 +1,52 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "reviewer-report",
+  "fd_id": "FD-001",
+  "source_event": "FD-001-000004-implementation-ready",
+  "human_report": "FD-001-review-r1.md",
+  "data": {
+    "reviewer_session": "fd001-reviewer-20261015-83ea1c9f",
+    "base_commit": "c7098dd",
+    "reviewed_commit": "0649490",
+    "fd_revision": 4,
+    "outcome": "changes-requested",
+    "review_number": 1,
+    "findings": [
+      {
+        "id": "R1-01",
+        "priority": "P2",
+        "blocking": true,
+        "path": "cli/internal/app/config.go",
+        "line": 60,
+        "acceptance": ["AC-03", "AC-08"],
+        "summary": "保留 Spring 环境控制项被静默忽略，可能在 profile 或配置位置与操作人员预期不同的情况下执行维护 SQL。",
+        "correction": "连库前拒绝 SPRING_PROFILES_*、SPRING_CONFIG_*、SPRING_APPLICATION_JSON 及未声明支持的 SPRING_DATASOURCE_*；保留支持的 URL/USERNAME/PASSWORD，driver 需明确支持或拒绝；诊断不输出值，退出 2，覆盖显式空值。"
+      },
+      {
+        "id": "R1-02",
+        "priority": "low",
+        "blocking": false,
+        "path": "docs/features/FD-001_MIGRATE_CLI_TO_GO.md",
+        "summary": "初始化脚本历史迁移说明的源路径与目标相同，建议恢复旧 src/main/resources 路径。"
+      }
+    ],
+    "commands": [
+      "Get-Content -Encoding utf8; Get-ChildItem; rg; rg --files",
+      "git show c7098dd:<path>; git diff --stat c7098dd; git diff c7098dd -- <paths>; git status --short; git log --oneline -13",
+      "git diff --check",
+      "git diff --name-only c7098dd -- gateway client docs/sql",
+      "PowerShell read-only regex comparison of 20 full SQL function definitions",
+      "aiw fd show FD-001",
+      "aiw fd claim FD-001 FD-001-000004-implementation-ready --session fd001-reviewer-20261015-83ea1c9f",
+      "aiw fd emit --help"
+    ],
+    "results": [
+      "SQL function definitions: 20 baseline, 20 current, all identical",
+      "git diff --check: passed",
+      "gateway/client/docs/sql: no changes",
+      "AC-03 and AC-08 require R1-01 repair; other acceptance areas statically reviewed with recorded runtime limits"
+    ],
+    "skipped_checks": ["tests", "application execution", "database operations", "compilation", "final builds", "linters", "formatters", "cross-platform execution", "benchmarks"],
+    "residual_risk": "数据库事务、租约、取消、TLS、JSONB/时间往返及跨平台运行仅有静态证据，尚未验证实际运行。"
+  }
+}

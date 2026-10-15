@@ -1,0 +1,37 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "reviewer-report",
+  "fd_id": "FD-001",
+  "source_event": "FD-001-000006-implementation-ready",
+  "human_report": "FD-001-review-r2.md",
+  "data": {
+    "reviewer_session": "fd001-reviewer-20261015-83ea1c9f",
+    "base_commit": "c7098dd",
+    "reviewed_commit": "344246e",
+    "repair_commit": "a239ce2",
+    "fd_revision": 6,
+    "outcome": "verification-passed",
+    "review_number": 2,
+    "findings": [],
+    "resolved_findings": [
+      {"id": "R1-01", "result": "明确拒绝保留 Spring 环境控制项，含空值、Hikari 和 Windows 名称大小写；driver 白名单及来源优先级保留，固定诊断且连库前退出 2。"},
+      {"id": "R1-02", "result": "历史 SQL 迁移源路径已恢复。"}
+    ],
+    "commands": [
+      "aiw fd show FD-001",
+      "aiw fd claim FD-001 FD-001-000006-implementation-ready --session fd001-reviewer-20261015-83ea1c9f",
+      "git log --oneline -5; git status --short",
+      "Get-Content -Encoding utf8 on R2 reports and run.go",
+      "git diff b9c09d5 -- <paths>; git diff --stat b9c09d5",
+      "git diff --check",
+      "git diff --name-only 0649490 -- gateway client docs/sql cli/internal/db cli/internal/app/command.go cli/internal/app/output.go cli/main.go cli/sql cli/go.mod cli/go.sum"
+    ],
+    "results": [
+      "R1 findings resolved without acceptance waiver",
+      "AC-01 through AC-10 supported by static review and recorded Worker compile-only evidence within the FD verification policy",
+      "git diff --check passed; unaffected implementation and excluded paths unchanged"
+    ],
+    "skipped_checks": ["tests", "application execution", "database operations", "additional compilation", "final builds", "linters", "formatters", "cross-platform execution", "benchmarks"],
+    "residual_risk": "实际 PostgreSQL 事务、租约、取消、TLS、JSONB/时间往返和双平台运行尚未验证；通过不代表部署或发布。"
+  }
+}

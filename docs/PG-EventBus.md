@@ -2,7 +2,7 @@
 
 本页依据当前 Java 服务、`docs/sql/` 和 CLI 合并初始化脚本整理。原始 `PG-EventBus.mht` 为历史资料，不代表当前运行行为。
 
-CLI、Gateway 与各语言客户端是独立构建单元。CLI 和 Gateway 各自持有 JDBC 调用及 DTO；Java 直连库内部保留 core、jdbc 和 contract 包，但不再拆成独立模块。所有 Java 数据访问均直接执行 SQL，不使用 ORM。
+CLI、Gateway 与各语言客户端是独立构建单元。CLI 使用 Go/pgx，Gateway 保持 Java/JDBC，各自持有 SQL 调用及结果模型；Java 直连库内部保留 core、jdbc 和 contract 包，但不再拆成独立模块。数据访问均直接执行 SQL，不使用 ORM。
 
 ## 数据模型
 
@@ -82,7 +82,7 @@ SQL 的 `schedule_retry` 按传入计数计算延迟：`min(2^retryCount 秒, 1 
 
 ## SQL 安装与权限
 
-`docs/sql/bootstrap.sql` 仅创建 schema、表和索引，不安装完整函数集。完整 CLI 安装入口为 `cli/src/main/resources/init.sql`，按依赖顺序合并 SQL，并包含事务和 `grant_access.sql`。
+`docs/sql/bootstrap.sql` 仅创建 schema、表和索引，不安装完整函数集。CLI 内嵌模板为 `cli/sql/init.sql`，按依赖顺序合并 SQL，并包含事务和授权。Go 在限定标记处引用 schema、将角色作为 format(%I) 的字符串参数渲染；模板不可直接手工执行。
 
 修改拆分 SQL 后，还需同步合并脚本；构建配置没有自动生成步骤。合并脚本不包含预建当前/未来分区的执行语句。
 
