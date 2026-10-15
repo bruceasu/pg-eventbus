@@ -1,16 +1,16 @@
-CREATE OR REPLACE FUNCTION bus.renew_consumer_lock(
+CREATE OR REPLACE FUNCTION renew_consumer_lock(
     p_consumer_name TEXT,
     p_instance_id TEXT,
     p_ttl_seconds INT DEFAULT 30
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 DECLARE
     v_updated INT;
 BEGIN
-    UPDATE bus.consumer_registry
+    UPDATE consumer_registry
        SET lock_until = now() + make_interval(secs => p_ttl_seconds),
            updated_at = now()
      WHERE consumer_name = p_consumer_name

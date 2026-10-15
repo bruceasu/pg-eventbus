@@ -1,15 +1,15 @@
-CREATE OR REPLACE FUNCTION bus.release_consumer_lock(
+CREATE OR REPLACE FUNCTION release_consumer_lock(
     p_consumer_name TEXT,
     p_instance_id TEXT
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 DECLARE
     v_updated INT;
 BEGIN
-    UPDATE bus.consumer_registry
+    UPDATE consumer_registry
        SET lock_owner = NULL,
            lock_until = NULL,
            updated_at = now()

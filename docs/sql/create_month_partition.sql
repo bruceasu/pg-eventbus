@@ -1,10 +1,10 @@
-CREATE OR REPLACE FUNCTION bus.create_month_partition(
+CREATE OR REPLACE FUNCTION create_month_partition(
     p_year INT,
     p_month INT
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 DECLARE
     v_start TIMESTAMPTZ;
@@ -16,15 +16,15 @@ BEGIN
     v_name := format('event_log_%s', to_char(v_start, 'YYYYMM'));
 
     EXECUTE format(
-        'CREATE TABLE IF NOT EXISTS bus.%I
-         PARTITION OF bus.event_log
+        'CREATE TABLE IF NOT EXISTS %I
+         PARTITION OF event_log
          FOR VALUES FROM (%L) TO (%L)',
         v_name, v_start, v_end
     );
 
     EXECUTE format(
         'CREATE INDEX IF NOT EXISTS %I_target_id
-         ON bus.%I (target_system, id)',
+         ON %I (target_system, id)',
         v_name, v_name
     );
 END;

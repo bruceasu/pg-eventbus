@@ -1,11 +1,11 @@
-CREATE OR REPLACE FUNCTION bus.maintenance()
+CREATE OR REPLACE FUNCTION maintenance()
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 BEGIN
-    PERFORM bus.ensure_future_partitions(6);
-    PERFORM bus.drop_partition_older_than(3);
+    PERFORM ensure_future_partitions(6);
+    PERFORM drop_partition_older_than(3);
 END;
 $$;

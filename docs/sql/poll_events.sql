@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION bus.poll_events(
+CREATE OR REPLACE FUNCTION poll_events(
     p_consumer_name TEXT,
     p_limit INT DEFAULT 100
 ) RETURNS TABLE(
@@ -11,16 +11,16 @@ CREATE OR REPLACE FUNCTION bus.poll_events(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 DECLARE
     v_last BIGINT;
 BEGIN
-    PERFORM bus.register_consumer(p_consumer_name);
+    PERFORM register_consumer(p_consumer_name);
 
     SELECT last_event_id
       INTO v_last
-      FROM bus.consumer_registry
+      FROM consumer_registry
      WHERE consumer_name = p_consumer_name;
 
     RETURN QUERY
@@ -30,7 +30,7 @@ BEGIN
            e.event_type,
            e.payload,
            e.created_at
-      FROM bus.event_log e
+      FROM event_log e
      WHERE e.id > v_last
        AND (e.target_system = p_consumer_name OR e.target_system IS NULL)
      ORDER BY e.id

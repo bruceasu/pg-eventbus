@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION bus.poll_retry(
+CREATE OR REPLACE FUNCTION poll_retry(
     p_consumer_name TEXT,
     p_limit INT DEFAULT 50
 ) RETURNS TABLE(
@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION bus.poll_retry(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 BEGIN
     RETURN QUERY
@@ -17,7 +17,7 @@ BEGIN
            r.original_id,
            r.payload,
            r.retry_count
-      FROM bus.event_retry r
+      FROM event_retry r
      WHERE r.consumer_name = p_consumer_name
        AND r.next_retry_at <= now()
      ORDER BY r.next_retry_at

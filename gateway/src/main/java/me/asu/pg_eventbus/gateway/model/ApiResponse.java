@@ -1,0 +1,14 @@
+package me.asu.pg_eventbus.gateway.model;
+
+import java.time.Instant;
+
+public record ApiResponse<T>(
+        boolean success,
+        String code,
+        String message,
+        String requestId,
+        Instant timestamp,
+        T data,
+        ErrorDto error
+) {
+}

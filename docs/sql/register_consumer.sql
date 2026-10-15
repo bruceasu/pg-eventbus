@@ -1,12 +1,12 @@
-CREATE OR REPLACE FUNCTION bus.register_consumer(
+CREATE OR REPLACE FUNCTION register_consumer(
     p_consumer_name TEXT
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 BEGIN
-    INSERT INTO bus.consumer_registry(consumer_name)
+    INSERT INTO consumer_registry(consumer_name)
     VALUES (p_consumer_name)
     ON CONFLICT (consumer_name) DO NOTHING;
 END;

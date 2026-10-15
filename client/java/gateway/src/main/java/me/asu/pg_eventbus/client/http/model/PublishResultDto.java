@@ -1,0 +1,6 @@
+package me.asu.pg_eventbus.client.http.model;
+
+public record PublishResultDto(
+        long eventId
+) {
+}

@@ -18,3 +18,8 @@ target/
 *.swn
 .env
 .worktrees/
+.github
+.vscode
+__pycache__/
+*.pyc
+bin/

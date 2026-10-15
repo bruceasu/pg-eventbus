@@ -1,9 +1,9 @@
-CREATE OR REPLACE FUNCTION bus.ensure_future_partitions(
+CREATE OR REPLACE FUNCTION ensure_future_partitions(
     p_months_ahead INT DEFAULT 6
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 DECLARE
     v_base_date DATE := date_trunc('month', now())::DATE;
@@ -21,7 +21,7 @@ BEGIN
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relname = v_part_name
-              AND n.nspname = 'bus'
+              AND n.nspname = current_schema()
         )
         INTO v_exists;
 
@@ -33,12 +33,12 @@ BEGIN
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE c.relname = v_part_name
-                  AND n.nspname = 'bus'
+                  AND n.nspname = current_schema()
             )
             INTO v_exists;
 
             IF NOT v_exists THEN
-                PERFORM bus.create_month_partition(
+                PERFORM create_month_partition(
                     EXTRACT(YEAR FROM v_target)::INT,
                     EXTRACT(MONTH FROM v_target)::INT
                 );

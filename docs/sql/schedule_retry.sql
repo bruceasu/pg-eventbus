@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION bus.schedule_retry(
+CREATE OR REPLACE FUNCTION schedule_retry(
     p_original_id BIGINT,
     p_consumer_name TEXT,
     p_payload JSONB,
@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION bus.schedule_retry(
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 DECLARE
     v_delay INTERVAL;
@@ -16,7 +16,7 @@ BEGIN
         interval '1 hour'
     );
 
-    INSERT INTO bus.event_retry(
+    INSERT INTO event_retry(
         original_id,
         consumer_name,
         payload,

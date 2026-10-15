@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION bus.move_to_deadletter(
+CREATE OR REPLACE FUNCTION move_to_deadletter(
     p_original_id BIGINT,
     p_consumer_name TEXT,
     p_payload JSONB,
@@ -6,10 +6,10 @@ CREATE OR REPLACE FUNCTION bus.move_to_deadletter(
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 BEGIN
-    INSERT INTO bus.event_deadletter(
+    INSERT INTO event_deadletter(
         original_id,
         consumer_name,
         payload,

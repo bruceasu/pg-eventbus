@@ -1,18 +1,18 @@
-CREATE OR REPLACE FUNCTION bus.acquire_consumer_lock(
+CREATE OR REPLACE FUNCTION acquire_consumer_lock(
     p_consumer_name TEXT,
     p_instance_id TEXT,
     p_ttl_seconds INT DEFAULT 30
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 DECLARE
     v_updated INT;
 BEGIN
-    PERFORM bus.register_consumer(p_consumer_name);
+    PERFORM register_consumer(p_consumer_name);
 
-    UPDATE bus.consumer_registry
+    UPDATE consumer_registry
        SET lock_owner = p_instance_id,
            lock_until = now() + make_interval(secs => p_ttl_seconds),
            updated_at = now()

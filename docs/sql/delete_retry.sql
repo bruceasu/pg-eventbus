@@ -1,12 +1,12 @@
-CREATE OR REPLACE FUNCTION bus.delete_retry(
+CREATE OR REPLACE FUNCTION delete_retry(
     p_retry_id BIGINT
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 BEGIN
-    DELETE FROM bus.event_retry
+    DELETE FROM event_retry
      WHERE retry_id = p_retry_id;
 END;
 $$;

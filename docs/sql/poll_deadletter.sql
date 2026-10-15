@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION bus.poll_deadletter(
+CREATE OR REPLACE FUNCTION poll_deadletter(
     p_consumer_name TEXT,
     p_limit INT DEFAULT 50
 ) RETURNS TABLE(
@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION bus.poll_deadletter(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = bus, pg_catalog
+SET search_path FROM CURRENT
 AS $$
 BEGIN
     RETURN QUERY
@@ -19,7 +19,7 @@ BEGIN
            d.payload,
            d.error_message,
            d.failed_at
-      FROM bus.event_deadletter d
+      FROM event_deadletter d
      WHERE d.consumer_name = p_consumer_name
      ORDER BY d.failed_at DESC, d.dead_id DESC
      LIMIT p_limit;
