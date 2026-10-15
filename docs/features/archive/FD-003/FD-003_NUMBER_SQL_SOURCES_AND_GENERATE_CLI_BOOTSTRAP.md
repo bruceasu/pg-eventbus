@@ -81,3 +81,5 @@ docs/sql/README.md 列出全部顺序、同连接与事务要求、schema/角色
 - 用户本轮明确同意三位编号、单一来源、自动生成，并要求当前及未来 Flyway 文档。
 - 基线 main 699e293；cli/sql/init.sql、docs/sql、cli/internal/db/initialize.go。
 - Planner source event FD-003-000002-design-requested；session fd003-planner-20261015-sql。
+
+**Completed:** 2026-10-15
