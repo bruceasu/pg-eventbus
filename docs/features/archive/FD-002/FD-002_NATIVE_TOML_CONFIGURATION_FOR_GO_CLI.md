@@ -106,3 +106,5 @@ lock_ttl_seconds = 30
 - 前序归档：`docs/features/archive/FD-001/FD-001_MIGRATE_CLI_TO_GO.md`。
 - 基线：main `631ea90`；`cli/internal/app/config.go`、`command.go`、`cli/README.md`。
 - Planner source event `FD-002-000002-design-requested`；session `fd002-planner-20261015-toml`。
+
+**Completed:** 2026-10-15
