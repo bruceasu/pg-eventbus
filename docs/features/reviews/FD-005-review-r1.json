@@ -1,0 +1,34 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "reviewer-report",
+  "fd_id": "FD-005",
+  "source_event": "FD-005-000004-implementation-ready",
+  "human_report": "FD-005-review-r1.md",
+  "data": {
+    "summary": "静态独立评审通过，无阻塞发现；运行互通仍未验证。",
+    "session": "fd005-reviewer-20261016-5bca912e",
+    "diff_base": "78f426d",
+    "reviewed_head": "a151f2eeecafeb7a0941094e3a3a92eca859963c",
+    "outcome": "verification-passed",
+    "findings": [],
+    "results": [
+      {"acceptance": "AC-01", "result": "supported", "evidence": "独立 ESM、声明、exports/files、无依赖；Worker 离线检查证据"},
+      {"acceptance": "AC-02", "result": "supported-static", "evidence": "9 操作与 Gateway/SQL、租约短路及维护 await/固定参数核对"},
+      {"acceptance": "AC-03", "result": "supported-static", "evidence": "int64/bigint、rawJSON/source、SQL text/UTC、nullable/空数组"},
+      {"acceptance": "AC-04", "result": "supported-static", "evidence": "路径编码、信封/错误、取消 finally、DB 参数绑定/引用与宿主生命周期"},
+      {"acceptance": "AC-05", "result": "supported-static", "evidence": "JS/声明、示例、文档及环境/精度/宿主边界逐项核对"},
+      {"acceptance": "AC-06", "result": "supported", "evidence": "实际检查与未运行项真实记录，独立 Session 评审，无无关实现"}
+    ],
+    "commands": [
+      "aiw fd --help; aiw fd show FD-005; aiw fd claim --help; aiw fd emit --help",
+      "aiw fd claim FD-005 FD-005-000004-implementation-ready --session fd005-reviewer-20261016-5bca912e",
+      "git status --short; git rev-parse HEAD; git log -8 --oneline",
+      "git diff --stat 78f426d..HEAD; git diff 78f426d..HEAD -- README.md client/README.md docs/README.md docs/PG-EventBus.md docs/pg-eventbus-client-guide.md",
+      "git diff --check 78f426d..HEAD",
+      "Get-Content/rg/Get-ChildItem 静态读取实现、声明、清单、示例、SQL、报告、指令候选"
+    ],
+    "unrun_checks": ["additional compile", "tests", "runtime snippets/examples", "HTTP/DB", "npm install/pack/publish", "formatter/linter", "network", "browser/cross-platform", "final build", "push/deploy"],
+    "residual_risk": "实际 HTTP/PG/并发及现代 JSON/自定义 fetch 未执行验证；小数 number、泛型提示、宿主 DB 取消/连接/脱敏和既有 SQL 风险按已记录边界保留。",
+    "external_parent_change": "PM 通知 da18527 不在评审范围；无 JS 路径直接冲突，未改动父分支。"
+  }
+}

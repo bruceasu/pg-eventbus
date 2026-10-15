@@ -1,7 +1,7 @@
 # FD-005: Add TypeScript and JavaScript clients
 
-**Status:** Open
-**Revision:** 3
+**Status:** Complete
+**Revision:** 5
 **Priority:** Medium
 **Evidence policy:** Dual
 
@@ -25,25 +25,29 @@ DB注入宿主query，schema=bus、batchSize=100、lockTtlSeconds=30。标识符
 
 ## Scope
 
-两个独立包/声明、9操作、JS/TS示例、当前文档、离线检查及独立评审。排除npm安装/发布、驱动实现、CORS改造、既有客户端/Gateway/CLI/SQL变更、消费/重试/续租调度、测试、网络和部署。可选范围提问未回复时按既有两种模式推进。
+两个独立包/声明、9操作、JS/TS示例、当前文档、离线检查及独立评审。排除npm安装/发布、驱动实现、CORS改造、既有客户端/Gateway/CLI/SQL变更、消费/重试/续租调度、测试、网络和部署。用户已明确回复“两种都提供”，范围已确认。
 
 ## Work items
 
 | ID | 结果 | 规模/难度/预计 | 依赖 | 完成标准 |
 |---|---|---|---|---|
 | 1.1 | 独立包/DTO/精度边界 | 小/中/≤半天 | 无 | exports/types、bigint/JSON/ISO校验，两包自带helper和声明 |
+| 1.1.1 | 输入资源/日期验证与类型入口 | 小/中/≤2小时 | 1.1 | ID字符串长度、日历有效性、脱敏URL、独立tsconfig及TS消费示例 |
 | 1.2 | Gateway实现 | 小/中/≤半天 | 1.1 | 9操作、编码、信封、错误、期限/取消/清理、精确commit |
+| 1.2.1 | fetch路径规范化防护 | 小/低/≤1小时 | 1.2 | 拒绝HTTP点路径消费者，文档明确限制；包清单携带示例与类型检查入口 |
 | 1.3 | DB实现 | 小/中/≤半天 | 1.1 | query、9操作、绑定/引用、锁/维护/映射 |
 | 1.4 | 接入文档 | 小/低/≤半天 | 1.2/1.3 | JS/TS安装示例、DB宿主、精度/错误/时间/取消边界与索引 |
 | 1.5 | 离线检查与交接 | 小/中/≤半天 | 1.4 | node --check、本地tsc --noEmit、Dual报告、独立Reviewer |
 
 ### TODO
 
-- [ ] 1.1 独立包/DTO/精度边界。
-- [ ] 1.2 Gateway实现。
-- [ ] 1.3 DB实现。
-- [ ] 1.4 接入文档。
-- [ ] 1.5 离线检查与交接。
+- [x] 1.1 独立包/DTO/精度边界。
+- [x] 1.1.1 输入资源/日期验证与类型入口。
+- [x] 1.2 Gateway实现。
+- [x] 1.2.1 fetch路径规范化防护。
+- [x] 1.3 DB实现。
+- [x] 1.4 接入文档。
+- [x] 1.5 离线检查与交接。
 
 ## Acceptance
 
@@ -61,9 +65,20 @@ DB注入宿主query，schema=bus、batchSize=100、lockTtlSeconds=30。标识符
 
 本机Node24.14.0；node --check每个JS，本地C:/green/aiw/http-openai-proxy/node_modules/typescript/lib/tsc.js --noEmit仅做声明/checkJs类型检查。不安装依赖、不跑场景/测试/formatter/linter/npm pack/最终构建。代码修复后可重做受影响检查。静态核对Gateway模型/路由与SQL，精度、拒绝路径、租约/清理；git diff --check。Worker与Reviewer独立。
 
+### Independent review
+
+- R1 静态独立评审通过，无阻塞发现。Reviewer Session `fd005-reviewer-20261016-5bca912e`；来源 `FD-005-000004-implementation-ready`；范围 `78f426d..a151f2eeecafeb7a0941094e3a3a92eca859963c`。
+- 评审报告：`docs/features/reviews/FD-005-review-r1.md` 及同名 JSON。Reviewer 未运行额外编译、测试、HTTP/DB、网络或示例；互通和并发风险仍未运行验证。
+
 ## Sources
 
+### Worker evidence
+
+- Session fd005-host-20261016-93d8ca8e；source FD-005-000003-design-ready；坐标main / feature/FD-005 / .wt/FD-005已核对。
+- 1.1—1.5及1.1.1/1.2.1完成，用户已确认两种模式。两包JS语法、strict checkJs/声明/TS消费示例通过；Gateway实际增加dot段防护后重查通过，DB未重复检查。
+- Dual报告docs/features/reports/FD-005-implementation-r1.md/JSON；无测试、HTTP/DB运行、npm安装/打包/发布、网络或部署。无持续blocker，未修改无关实现；独立Reviewer待交接。
+
 - Issue: none
-- 用户本轮要求增加TypeScript/JavaScript客户端；可选范围提问默认匹配既有两种模式。
+- 用户本轮要求增加TypeScript/JavaScript客户端；随后明确确认“两种都提供”。
 - client/README、Gateway api/store、docs/sql；main基线cd31a46。
 - Planner来源FD-005-000002-design-requested；Session fd005-host-20261016-93d8ca8e。

@@ -42,6 +42,8 @@ Go CLI、Java 门面及网关的 `poll` 先获取锁，失败则返回空事件�
 
 Go/Python 直连 `poll` 只调用查询函数并读取 registry，不调用锁获取函数，且将顶层 `lockAcquired` 固定为 true。不能依靠该字段确认真实持锁。
 
+JS/TS直连通过宿主query连接/池执行参数绑定SQL，先获取租约再拉取，失败短路，保持与Gateway相同的占位consumer状态。HTTP版由Gateway编排租约。两版ID/位点返回bigint，事件时间为ISO字符串；不自动释放/续租，不提供业务回调或重试调度。JS DB维护直接执行函数，不采用旧Go/Python CTE结构；数据库既有清理风险仍适用。
+
 `init_consumer_at_time` 注册消费者并将位点设为全日志中 `created_at <= startTime` 的最大 ID（无数据则为 0）。它不按目标过滤，也不检查锁，允许位点倒退。恢复只影响后续拉取，不能恢复已经删除的数据。
 
 ## Java 回调与重试

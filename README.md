@@ -14,8 +14,9 @@
 | `gateway` | 独立 Go HTTP 服务，使用 pgx 连接池调用数据库函数 |
 | `client/go/db` / `client/python/db` | 通过外部 `psql` 命令访问数据库 |
 | `client/go/gateway` / `client/python/gateway` | 调用网关的 Go / Python 客户端 |
+| `client/javascript/db` / `client/javascript/gateway` | JS ESM + TypeScript 声明；注入 PostgreSQL query / 调用 HTTP，ID为bigint |
 
-客户端统一放在 `client/<语言>/db` 和 `client/<语言>/gateway`。CLI、Gateway 和客户端互不依赖；原 core、jdbc、contract 已合并到 Java 直连客户端，不再作为独立模块。CLI 与 Gateway 均使用 Go/pgx，不使用 ORM。
+客户端统一放在 `client/<语言>/db` 和 `client/<语言>/gateway`。JS/TS共用javascript目录，独立ESM包、无需预构建；Node.js >=22.12，详见[JS/TS客户端](client/javascript/README.md)。CLI、Gateway 和客户端互不依赖；原 core、jdbc、contract 已合并到 Java 直连客户端，不再作为独立模块。CLI 与 Gateway 均使用 Go/pgx，不使用 ORM。
 
 ## 构建
 

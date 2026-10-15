@@ -1,0 +1,12 @@
+{
+  "name": "@pg-eventbus/client-gateway",
+  "version": "0.1.0",
+  "description": "PG EventBus HTTP client for JavaScript and TypeScript",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": { ".": { "types": "./index.d.ts", "import": "./index.js", "default": "./index.js" } },
+  "files": ["*.js", "*.d.ts", "README.md", "examples/*.ts", "tsconfig.json"],
+  "engines": { "node": ">=22.12" },
+  "scripts": { "compile": "node --check index.js && node --check codec.js" }
+}

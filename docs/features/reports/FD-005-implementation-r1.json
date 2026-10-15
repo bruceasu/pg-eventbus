@@ -1,0 +1,34 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "worker-report",
+  "fd_id": "FD-005",
+  "source_event": "FD-005-000003-design-ready",
+  "human_report": "FD-005-implementation-r1.md",
+  "data": {
+    "summary": "独立JavaScript ESM DB和Gateway客户端，自带TypeScript声明，9操作、bigint精度、租约与取消/宿主边界。",
+    "session": "fd005-host-20261016-93d8ca8e",
+    "diff_base": "78f426d",
+    "implementation_head": "a673ec0",
+    "scope_confirmation": "用户明确选择两种都提供",
+    "changed_paths": ["client/javascript", "client/README.md", "README.md", "docs/README.md", "docs/PG-EventBus.md", "docs/pg-eventbus-client-guide.md", "docs/features/FD-005_ADD_TYPESCRIPT_AND_JAVASCRIPT_CLIENTS.md"],
+    "commands": [
+      {"command": "node --check index.js; node --check codec.js", "cwd": "client/javascript/gateway", "exit_code": 0},
+      {"command": "node --check index.js; node --check codec.js", "cwd": "client/javascript/db", "exit_code": 0},
+      {"command": "node C:/green/aiw/http-openai-proxy/node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit", "cwd": "client/javascript/gateway", "exit_code": 0},
+      {"command": "node C:/green/aiw/http-openai-proxy/node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit", "cwd": "client/javascript/db", "exit_code": 0},
+      {"command": "node --check client/javascript/gateway/index.js; node <local-tsc> -p client/javascript/gateway/tsconfig.json --noEmit", "exit_code": 0, "reason": "实际添加dot路径防护后重查受影响Gateway"},
+      {"command": "git diff --check 78f426d", "exit_code": 0}
+    ],
+    "results": [
+      {"acceptance": "AC-01", "result": "supported-static-and-compile", "evidence": "独立ESM/声明/示例及包导出，无下载"},
+      {"acceptance": "AC-02", "result": "supported-static", "evidence": "9操作、参数绑定、先租约、默认值/维护对照"},
+      {"acceptance": "AC-03", "result": "supported-static", "evidence": "int64输入边界、bigint输出、rawJSON/token源精确编码、UTC字符串"},
+      {"acceptance": "AC-04", "result": "supported-static", "evidence": "URL/字段/失败/取消finally、DB宿主生命周期与SQL安全"},
+      {"acceptance": "AC-05", "result": "supported-static-and-compile", "evidence": "strict checkJs/声明及TS消费示例通过，JS/TS文档更新"},
+      {"acceptance": "AC-06", "result": "worker-complete-review-pending", "evidence": "离线语法/类型及diff通过，无运行验证；独立Reviewer待处理"}
+    ],
+    "unrun_checks": ["tests", "HTTP/DB runtime", "examples runtime", "npm install/pack/publish", "browser/cross-platform", "formatters/linters", "network", "release build", "push/deploy"],
+    "blockers": [],
+    "residual_risk": "现代JSON/fetch与真实PG/HTTP/并发未经运行验证；payload泛型非运行校验，小数JS number；DB超时/取消、连接和日志属于宿主，无自动续租且SQL清理风险不变。"
+  }
+}

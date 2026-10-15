@@ -8,6 +8,7 @@
 | [配置与 CLI](pg-eventbus-schema-and-cli-addendum.md) | 各程序配置边界、初始化、命令、输出和退出码 | [CLI 参数](../cli/internal/app/command.go)、[配置解析](../cli/internal/app/config.go)、[数据库调用](../cli/internal/db/)、[CLI README](../cli/README.md) |
 | [客户端指南](pg-eventbus-client-guide.md) | 语言与接入方式、装配、接口、HTTP 路由及示例 | [客户端目录](../client/)、[Gateway 路由及请求](../gateway/internal/api/api.go) |
 | [Gateway 配置与迁移](../gateway/README.md) | Go 构建、环境变量、启动/退出、请求验证和错误边界 | [配置](../gateway/internal/config/config.go)、[入口](../gateway/main.go) |
+| [JS/TS 客户端](../client/javascript/README.md) | ESM及类型声明、DB/HTTP接入、bigint精度/时间/超时责任 | [DB](../client/javascript/db/index.js)、[HTTP](../client/javascript/gateway/index.js) |
 | [SQL 来源与安装顺序](sql/README.md) | 22 个编号来源、生成流程、手工安装 | [生成器](../cli/internal/cmd/gensql/main.go)、[内嵌入口](../cli/sql/script.go)、[生成模板](../cli/sql/init.sql) |
 | [未来 Flyway 接入](flyway-adoption.md) | 未来迁移来源、V/R 文件、已有库 baseline 和 CLI 职责切换 | 当前尚未实现 Flyway 集成；三位安装编号不是迁移版本 |
 

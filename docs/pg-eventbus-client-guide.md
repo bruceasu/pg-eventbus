@@ -1,6 +1,6 @@
 # 客户端接口与使用说明
 
-本页覆盖 Java、Go、Python 的直连和 HTTP 两类客户端。配置与初始化见[CLI 文档](pg-eventbus-schema-and-cli-addendum.md)，底层行为见[实现与 SQL](PG-EventBus.md)。
+本页覆盖 Java、Go、Python、JavaScript/TypeScript 的直连和 HTTP 两类客户端。配置与初始化见[CLI 文档](pg-eventbus-schema-and-cli-addendum.md)，底层行为见[实现与 SQL](PG-EventBus.md)。
 
 ## 接入选择与当前状态
 
@@ -9,10 +9,15 @@
 | Java | `pg-eventbus-client-java`，JDBC/core 服务 | `pg-eventbus-client-java-http` | 直连注入五个服务；HTTP 传入网关根地址 |
 | Go | `client/go/db`，外部 psql 命令 | `client/go/gateway` | `New()` / `New(baseURL)` |
 | Python | `client/python/db`，外部 psql 命令 | `client/python/gateway` | `PgEventBusClient()` / `PgEventBusClient(base_url)` |
+| JavaScript / TypeScript | `client/javascript/db`，注入 PostgreSQL query | `client/javascript/gateway`，fetch | `new PgEventBusClient(database, options)` / `new PgEventBusClient(baseURL, options)` |
 
 所有客户端按语言放在 `client/<语言>/db` 与 `client/<语言>/gateway`，分别独立构建。独立的 Go CLI 使用 pgx；这里的 Go 直连客户端仍使用外部 psql，两者的连接方式与配置不能混用。
 
 直连 Go/Python 还存在额外差异：poll 不获取锁，查询 registry 要求表读权限，维护 SQL 有结构问题。需要先获取租约再拉取时可通过 Go 网关。Python 两个分发包均暴露 `pg_eventbus` 导入名，应安装在独立虚拟环境。
+
+## JavaScript / TypeScript 接入
+
+JS/TS均使用同一份ESM及类型声明，Node>=22.12。方法命名同Java：publish/poll/commit/recover和5种维护，返回Promise，结果字段camelCase；ID/位点一律bigint，时间为ISO字符串。支持本地路径安装，本次未发布npm。完整JS/TS示例、精确JSON/输入范围、HTTP超时/signal、DB连接/query_timeout责任见[JS/TS说明](../client/javascript/README.md)。DB版先获取租约，广播target可为null；HTTP版由Gateway获取租约并要求非空target。limit缺失/null/非正数采用配置批大小。recover需显式Date或带时区字符串。两版不自动释放或续租；普通JSON.stringify结果前需处理bigint。
 
 ## Java 依赖与装配
 
