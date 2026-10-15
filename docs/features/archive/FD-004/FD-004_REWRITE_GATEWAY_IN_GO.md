@@ -103,3 +103,5 @@ HTTP 拒绝缺失/空白必填字段、非法 JSON/类型/越界整数、缺失/
 - 用户：$fd-workflow 创建 使用 GO 重写 gateway，然后自动完成（auto）。
 - 基线 aa92083；gateway/src/main/java、client/*/gateway、docs/sql/050、080、090、100、110、170、200。
 - Planner source event FD-004-000002-design-requested；Session 见 .ai/fd/FD-004/host-session.txt。
+
+**Completed:** 2026-10-15
