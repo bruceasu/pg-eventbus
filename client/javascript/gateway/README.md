@@ -2,6 +2,8 @@
 
 独立 ESM 包 `@pg-eventbus/client-gateway`，自带 `.d.ts`，Node.js >=22.12。安装、精度和运行环境边界见[总说明](../README.md)。从宿主项目本地安装本目录后，JS/TS 均可：
 
+无需先发布到 npm。在使用方项目运行 `npm install D:/03_projects/pg-eventbus/client/javascript/gateway` 即可；也可复制完整包目录后相对导入，或用 `npm pack` 生成 `.tgz` 分发。当前未发布公共 npm，具体命令及 ESM 入口设置见[在其它项目中使用](../README.md#在其它项目中使用)。
+
 ```javascript
 import { PgEventBusClient, PgEventBusError } from '@pg-eventbus/client-gateway';
 

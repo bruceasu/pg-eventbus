@@ -82,3 +82,5 @@ DB注入宿主query，schema=bus、batchSize=100、lockTtlSeconds=30。标识符
 - 用户本轮要求增加TypeScript/JavaScript客户端；随后明确确认“两种都提供”。
 - client/README、Gateway api/store、docs/sql；main基线cd31a46。
 - Planner来源FD-005-000002-design-requested；Session fd005-host-20261016-93d8ca8e。
+
+**Completed:** 2026-10-15

@@ -2,6 +2,8 @@
 
 独立 ESM 包 `@pg-eventbus/client-db`，自带 `.d.ts`，Node.js >=22.12。先用CLI安装数据库函数与授权角色。安装、精度和时间规则见[总说明](../README.md)。宿主另行安装并配置node-postgres（`pg`），本包不下载或持有驱动：
 
+无需先发布到 npm。在使用方项目运行 `npm install D:/03_projects/pg-eventbus/client/javascript/db` 即可；也可复制完整包目录后相对导入，或用 `npm pack` 生成 `.tgz` 分发。当前未发布公共 npm，具体命令及 ESM 入口设置见[在其它项目中使用](../README.md#在其它项目中使用)。使用下方 pg 示例时，宿主还需安装 `pg`；TS 项目如需该驱动的类型声明，另安装 `@types/pg`。
+
 ```javascript
 import pg from 'pg';
 import { PgEventBusClient } from '@pg-eventbus/client-db';
