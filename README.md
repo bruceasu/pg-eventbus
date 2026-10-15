@@ -130,11 +130,12 @@ Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/event-bus/events'
 - `recover` 将位点设为指定时间之前及该时刻的最大事件 ID，不是按时间查询事件，也不会还原已清理的数据。
 - 平面客户端的 `poll/commit` 不自动运行回调、重试或死信流程。Java core 提供独立服务，调用方负责调度。
 - `maintenance` 固定预建未来 6 个月分区并调用保留参数为 3 的旧分区删除函数，不清理重试或死信。
-- 当前 Go/Python 客户端源码含非法 DTO 标识符；直连版还有锁、权限和维护 SQL 的接入限制。
+- Go/Python 直连客户端通过外部 psql 执行 SQL，存在锁、权限和维护 SQL 的接入限制，详见[客户端指南](docs/pg-eventbus-client-guide.md)。独立 Go CLI 使用 pgx 并在拉取前获取租约。
 - 分区删除和按位点清理存在需要验证的 SQL 边界，详见[实现与 SQL](docs/PG-EventBus.md)。
 
 ## 文档
 
+- [文档索引与维护规则](docs/README.md)
 - [客户端接口、Java 装配与消费示例](docs/pg-eventbus-client-guide.md)
 - [schema 配置、初始化、CLI 与维护](docs/pg-eventbus-schema-and-cli-addendum.md)
 - [数据库模型、消费语义与实现限制](docs/PG-EventBus.md)

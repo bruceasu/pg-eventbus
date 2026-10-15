@@ -10,7 +10,7 @@
 | Go | `client/go/db`，外部 psql 命令 | `client/go/gateway` | `New()` / `New(baseURL)` |
 | Python | `client/python/db`，外部 psql 命令 | `client/python/gateway` | `PgEventBusClient()` / `PgEventBusClient(base_url)` |
 
-所有客户端按语言放在 `client/<语言>/db` 与 `client/<语言>/gateway`，分别独立构建。Go/Python 中原有的非法 DTO 类型限定名已修正。
+所有客户端按语言放在 `client/<语言>/db` 与 `client/<语言>/gateway`，分别独立构建。独立的 Go CLI 使用 pgx；这里的 Go 直连客户端仍使用外部 psql，两者的连接方式与配置不能混用。
 
 直连 Go/Python 还存在额外差异：poll 不获取锁，查询 registry 要求表读权限，维护 SQL 有结构问题。需要完整锁编排时可通过网关走 Java 实现。Python 两个分发包均暴露 `pg_eventbus` 导入名，应安装在独立虚拟环境。
 
@@ -91,7 +91,7 @@ Go/Java 恢复必须提供时间；Python 两版默认使用当前 UTC 时间。
 
 ## 返回结构
 
-HTTP JSON 字段使用 camelCase。Java record 访问器同名；Go DTO 字段意图使用 PascalCase（例如 `EventID`），Python 使用 snake_case（例如 `event_id`）。
+HTTP JSON 字段使用 camelCase。Java record 访问器同名；Go DTO 字段使用 PascalCase（例如 `EventID`），Python 使用 snake_case（例如 `event_id`）。Go 的 ID、位点字段为 int64。
 
 | 结果 | 字段 |
 |---|---|
@@ -104,7 +104,7 @@ HTTP JSON 字段使用 camelCase。Java record 访问器同名；Go DTO 字段�
 
 ConsumerDto 包含 `consumerName`、`instanceId`、`locked`、`lockOwner`、`lockAcquiredAt`、`lockExpiresAt`、`lastCommittedEventId`、`currentOffset`、`batchSize`。
 
-Java poll 构造的 ConsumerDto 锁时间为 null、位点为 0；recover 返回初始化位点。它们不是 registry 的完整状态查询。提交结果中的 ID 是请求值；只有 `committed=true` 才表示 SQL 更新成功，实际位点由数据库 GREATEST 规则决定。
+Java 门面及 Gateway 的 poll 构造的 ConsumerDto 锁时间为 null、位点为 0；recover 返回初始化位点。Go CLI 也使用这种占位状态。它们不是 registry 的完整状态查询。提交结果中的 ID 是请求值；只有 `committed=true` 才表示 SQL 更新成功，实际位点由数据库 GREATEST 规则决定。
 
 HTTP 网关正常响应信封为：
 
@@ -121,6 +121,24 @@ HTTP 网关正常响应信封为：
 ```
 
 客户端会解包 `data`。顶层 success 表示控制器正常完成，不表示获得锁或提交成功；网关没有统一异常处理器保证所有错误均为这一信封。
+
+## HTTP 路由与请求
+
+所有路由使用 POST，基础路径为 `/api/event-bus`。Gateway 的控制器和数据库服务以配置了 `spring.datasource.url` 为启用条件，不使用 `bus.enabled` 开关。
+
+| 相对路径 | JSON 请求体 |
+|---|---|
+| `/events` | `sourceSystem`、`targetSystem`、`eventType`（均非空白），`payload`（非空） |
+| `/consumers/{consumerName}/poll` | `instanceId`（非空白）、可选 `limit` |
+| `/consumers/{consumerName}/commit` | `instanceId`（非空白）、`newLastId`（必填） |
+| `/consumers/{consumerName}/recover` | `startTime`（必填时间） |
+| `/maintenance/run` | 无 |
+| `/maintenance/ensure-current-partition` | 无 |
+| `/maintenance/ensure-future-partitions` | 无 |
+| `/maintenance/drop-older-than/{keepMonths}` | 无 |
+| `/maintenance/cleanup-consumed` | 无；响应 data 为删除数量 |
+
+请求 DTO 定义见 [Gateway API 源码](../gateway/src/main/java/me/asu/pg_eventbus/gateway/api)。HTTP 时间示例使用带时区的 ISO-8601 字符串；Go CLI 的输出则使用数值型 epoch seconds，不能直接当作 HTTP 客户端 DTO JSON 使用。
 
 ## Java 发布与消费示例
 

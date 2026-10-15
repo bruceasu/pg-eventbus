@@ -12,12 +12,20 @@ spring:
     password: change-me
     driver-class-name: org.postgresql.Driver
 bus:
-  enabled: true
   schema: bus
   batch-size: 100
   lock-ttl-seconds: 30
-  max-retries: 5
 ```
+
+以上是 Gateway 配置示例；Gateway 的 `bus` 配置只包含 schema、批大小和锁 TTL。默认值来自其配置类及 [application.properties](../gateway/src/main/resources/application.properties)：
+
+| 属性 | 默认值 | 环境变量 / 作用 |
+|---|---|---|
+| `bus.schema` | bus | `BUS_SCHEMA`；数据库函数所在 schema |
+| `bus.batch-size` | 100 | `BUS_BATCH_SIZE`；未提供正数 limit 时的批大小 |
+| `bus.lock-ttl-seconds` | 30 | `BUS_LOCK_TTL_SECONDS`；获取锁的 TTL（秒） |
+
+Java 直连客户端使用自己的 [PgEventBusProperties](../client/java/db/src/main/java/me/asu/pg_eventbus/core/PgEventBusProperties.java)，由宿主注册配置绑定及服务，其默认值如下。接入时须显式设置 `bus.enabled=true`、正数批大小、锁 TTL，以及使用重试服务时的最大重试数：
 
 | 属性 | 默认值 | 环境变量 / 作用 |
 |---|---|---|
@@ -28,7 +36,7 @@ bus:
 | `bus.lock-ttl-seconds` | 0 | `BUS_LOCK_TTL_SECONDS`；Java 拉取/回调/重试获取锁的 TTL |
 | `bus.max-retries` | 0 | `BUS_MAX_RETRIES`；Java 重试服务的失败阈值 |
 
-Gateway 默认批大小 100、锁 TTL 30 秒；Java 直连库由宿主提供配置，`bus.enabled` 和 `bus.max-retries` 仅用于该客户端。schema 的空白值回退到 `bus`。调用会引用并转义标识符；Go CLI 初始化要求 schema 和授权角色符合 `[A-Za-z_][A-Za-z0-9_]*`，随后按标识符引用以保留大小写。
+`bus.enabled`、`bus.consumer-name` 和 `bus.max-retries` 属于 Java 直连客户端，Gateway 不使用它们。schema 的空白值回退到 `bus`。调用会引用并转义标识符；Go CLI 初始化要求 schema 和授权角色符合 `[A-Za-z_][A-Za-z0-9_]*`，随后按标识符引用以保留大小写。
 
 Java 配置不读取 `PGEVENTBUS_SCHEMA`。自定义 schema 使用 `bus.schema: analytics` 或 `BUS_SCHEMA=analytics`，初始化与运行时必须保持一致。
 
@@ -38,9 +46,11 @@ Gateway 根据 `spring.datasource.url` 创建数据库 Bean。Go CLI 自己加�
 
 CLI 使用 `pg-eventbus.toml`，通过 `[database]` 配置 url/user/password/schema，通过 `[consumer]` 配置 batch_size/lock_ttl_seconds，顶层 timeout 可设为 `30s` 等 Go duration。完整示例见 [pg-eventbus.example.toml](../cli/pg-eventbus.example.toml)。默认 schema bus、批大小 100、TTL 30 秒。
 
-优先级为选项 > 环境变量 > TOML > 默认值。文件选择为 `--config` > `PGEVENTBUS_CONFIG` > 当前目录的 pg-eventbus.toml；只有默认文件可缺省。环境变量使用 `PGEVENTBUS_DATABASE_URL/USER/PASSWORD`、`PGEVENTBUS_SCHEMA`、`PGEVENTBUS_BATCH_SIZE`、`PGEVENTBUS_LOCK_TTL_SECONDS`、`PGEVENTBUS_TIMEOUT`；参数为 `--database-url`、`--database-user`、`--database-password`、`--schema`、`--batch-size`、`--lock-ttl-seconds`、`--timeout`。URL 仅接受原生 PostgreSQL 格式。
+优先级为选项 > 环境变量 > TOML > 默认值。文件选择为 `--config` > `PGEVENTBUS_CONFIG` > 当前目录的 pg-eventbus.toml；只有默认文件可缺省。环境变量使用 `PGEVENTBUS_DATABASE_URL`、`PGEVENTBUS_DATABASE_USER`、`PGEVENTBUS_DATABASE_PASSWORD`、`PGEVENTBUS_SCHEMA`、`PGEVENTBUS_BATCH_SIZE`、`PGEVENTBUS_LOCK_TTL_SECONDS`、`PGEVENTBUS_TIMEOUT`；参数为 `--database-url`、`--database-user`、`--database-password`、`--schema`、`--batch-size`、`--lock-ttl-seconds`、`--timeout`。URL 必须为带主机的 `postgresql://` 或 `postgres://`，没有默认数据库 URL。
 
-`--timeout 30s` 可设置整次操作时限，默认 0；Ctrl+C 取消请求。帮助不连接数据库。运行时不依赖 JVM、psql、其它 module 或外部 SQL 文件。
+TOML 文件最大 1 MiB，键区分大小写；批大小和 TTL 必须为正 int32，timeout 为非负 Go duration。单独用户名/密码可覆盖同级或低优先级 URL 内的凭证；低优先级值仅在高优先级 URL 缺少对应凭证时补充，显式空密码也会生效。完整映射和参数写法见 [CLI README](../cli/README.md)。
+
+`--timeout 30s` 可设置整次操作时限，默认 0 不增加总时限；连接建立默认最多 10 秒，可通过 URL 的 connect_timeout 调整。Ctrl+C 取消请求。帮助不连接数据库。运行时不依赖 JVM、psql、其它 module 或外部 SQL 文件。
 
 CLI 不再读取 Spring/BUS 环境映射、application.* 或 YAML/properties，不再提供 driver、JDBC URL 和点分参数兼容。旧环境作为无关环境忽略，显式指定旧格式文件或旧参数会报错。TOML 未知键、重复键、类型错误和语法错误均失败且诊断不泄露文件内容；不展开占位符。Java Gateway/客户端的配置保持原样。
 
@@ -108,7 +118,7 @@ CLI 使用 `go:embed` 内嵌 `cli/sql/init.sql` 生成模板，只渲染 schema/
 | `event send\|publish <source> <target> <type> <payloadJson>` | 发布 JSON |
 | `event get\|poll <consumerName> <instanceId> [limit]` | 获得租约后拉取 |
 | `event set-cursor\|commit <consumerName> <instanceId> <newLastId>` | 提交位点 |
-| `event recover <consumerName> <isoInstant>` | 按时间重设位点 |
+| `event recover <consumerName> <isoInstant>` | 按时间重设位点；要求带时区的 RFC3339，可含纳秒 |
 | `maintenance run` | 执行数据库维护函数 |
 
 ```powershell
@@ -121,6 +131,8 @@ CLI 使用 `go:embed` 内嵌 `cli/sql/init.sql` 生成模板，只渲染 schema/
 ```
 
 JSON 参数须完整作为一个 shell 参数传入；不同 PowerShell 版本对原生程序引号的传递有差异，复杂负载可通过网关发送。事件/维护成功命令向 stdout 输出单行 JSON，时间为旧 CLI 的数值型 epoch seconds、保留纳秒精度；`db init` 保留完成文本。诊断写 stderr。退出码：0 成功/帮助（包括租约失败、commit=false 结果），1 连接/SQL/文件等运行错误，2 参数/配置错误，130 Ctrl+C。未知命令和缺参不再返回伪成功。
+
+CLI 的 poll 先获取租约，再拉取事件；limit 省略或非正数时使用配置批大小，显式 limit 须为 int32。poll 和 commit 均不释放租约；再次 poll 需要等待租约到期。`keepMonths` 必须为非负 int32，提交位点为 int64。CLI 不提供续租、释放锁、重试处理或 cleanupConsumed 命令。
 
 ## 维护
 

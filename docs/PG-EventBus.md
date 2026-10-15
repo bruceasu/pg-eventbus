@@ -1,6 +1,6 @@
 # PostgreSQL 事件总线：模型与实现
 
-本页依据当前 Java 服务、`docs/sql/` 和 CLI 合并初始化脚本整理。原始 `PG-EventBus.mht` 为历史资料，不代表当前运行行为。
+本页依据当前 Go CLI、Java Gateway、各语言客户端及 `docs/sql/` 整理。原始 `PG-EventBus.mht` 为历史资料，不代表当前运行行为。文档与实现的对应入口见[文档索引](README.md)。
 
 CLI、Gateway 与各语言客户端是独立构建单元。CLI 使用 Go/pgx，Gateway 保持 Java/JDBC，各自持有 SQL 调用及结果模型；Java 直连库内部保留 core、jdbc 和 contract 包，但不再拆成独立模块。数据访问均直接执行 SQL，不使用 ORM。
 
@@ -8,10 +8,10 @@ CLI、Gateway 与各语言客户端是独立构建单元。CLI 使用 Go/pgx，G
 
 | 表 | 主要字段与职责 |
 |---|---|
-| `bus.event_log` | `id`、来源、目标、类型、JSONB 负载、`created_at`；按时间月分区，主键为 `(id, created_at)` |
-| `bus.consumer_registry` | 消费者名称主键、`last_event_id`、注册/更新时间、`lock_owner` 和 `lock_until` |
-| `bus.event_retry` | 原事件 ID、消费者、负载、重试计数、下次重试时间 |
-| `bus.event_deadletter` | 原事件 ID、消费者、负载、错误信息、失败时间 |
+| `event_log` | `id`、来源、目标、类型、JSONB 负载、`created_at`；按时间月分区，主键为 `(id, created_at)` |
+| `consumer_registry` | 消费者名称主键、`last_event_id`、注册/更新时间、`lock_owner` 和 `lock_until` |
+| `event_retry` | 原事件 ID、消费者、负载、重试计数、下次重试时间 |
+| `event_deadletter` | 原事件 ID、消费者、负载、错误信息、失败时间 |
 
 schema 可配置，表名不变。事件日志分区名为 `event_log_YYYYMM`，分区建立 `(target_system, id)` 索引。时间边界通过数据库会话时区计算。
 
@@ -38,7 +38,7 @@ AND (e.target_system = consumerName OR e.target_system IS NULL)
 
 `commit_consumer_offset` 需要同一持有者且租约未过期，使用 `GREATEST(last_event_id, newLastId)` 保持位点不倒退。提交不会释放锁，也不检查该 ID 是否实际拉取或处理过，调用方只能提交已成功处理的连续前缀。
 
-Java 门面及网关的 `poll` 先获取锁，失败则返回空事件列表和 `lockAcquired=false`；成功后拉取，不释放锁。平面客户端未公开续租/释放接口，Java 可使用 recovery service 或 repository。
+Go CLI、Java 门面及网关的 `poll` 先获取锁，失败则返回空事件列表和 `lockAcquired=false`；成功后拉取，不释放锁。各语言 HTTP 客户端使用网关的这一行为。平面客户端及 CLI 未公开续租/释放接口，Java 直连可使用 recovery service 或 repository。
 
 Go/Python 直连 `poll` 只调用查询函数并读取 registry，不调用锁获取函数，且将顶层 `lockAcquired` 固定为 true。不能依靠该字段确认真实持锁。
 
@@ -53,11 +53,13 @@ Go/Python 直连 `poll` 只调用查询函数并读取 registry，不调用锁�
 1. 获取锁并拉取事件。
 2. 顺序调用 handler，记录成功处理数和末条成功 ID。
 3. 第一次异常时为失败事件调用 `schedule_retry(..., 0)`，停止处理后续事件。
-4. 提交成功前缀（如有），并在 finally 中释放锁。
+4. 在 finally 中提交成功前缀（如有），然后释放锁。
+
+拉取在 try/finally 之前执行，拉取抛异常时不会执行这里的释放；finally 内提交抛异常也会跳过后续释放。因此它不是所有失败路径都能主动释放锁的保证。
 
 失败事件的位点没有被跳过，因此后续正常拉取与重试队列都可能再次处理它。提交的布尔结果未被写入 `PgEventBusRunResult`，`committedOffset` 实际来自末条成功处理事件，不能单凭该字段确认数据库提交成功。
 
-`PgEventBusRetryService.processDueRetries` 获取消费者锁，读取到期重试记录，处理成功后删除记录。失败时：
+`PgEventBusRetryService.processDueRetries` 获取消费者锁，读取到期重试记录，处理成功后删除记录。到期记录查询也位于 try/finally 之前，查询抛异常时不会执行其主动释放逻辑。处理失败时：
 
 - 若 `retryCount + 1 >= maxRetries`，写入死信并删除重试记录。
 - 否则再次排队并删除旧记录。
@@ -95,7 +97,7 @@ Go/Python 直连版查询 `consumer_registry` 表；仅按上述函数授权无�
 - Go/Python 直连维护 SQL 将带分号的 SELECT 嵌入 `WITH effect AS (...)`，并且外层不引用该 CTE；不能将返回的 `executed` 视为维护已生效的可靠证据。
 - 两个行清理函数用 `ctid` 跨分区匹配删除，没有同时匹配 `tableoid`。不同分区可能有相同 ctid，实际删除范围和数量可能超过选出的批次，不能据此保证严格按位点/时间安全清理。
 - 网关没有自定义的全局错误信封转换、认证或消费者权限控制；正常返回的 `ApiResponse.success=true` 不等于拿锁或提交成功。
-- Java 拉取 DTO 中的锁时间为 null、位点为 0，是服务组装的占位字段，不是 registry 的完整实时状态。
+- Go CLI、Java 门面及 Gateway 拉取 DTO 中的锁时间为 null、位点为 0，是服务组装的占位字段，不是 registry 的完整实时状态。
 - 仓库没有自动轮询、续租、重试或维护调度器。
 
 这些限制是当前代码事实，本文没有修改实现。接口与接入示例见[客户端指南](pg-eventbus-client-guide.md)，操作入口见[CLI 文档](pg-eventbus-schema-and-cli-addendum.md)。
