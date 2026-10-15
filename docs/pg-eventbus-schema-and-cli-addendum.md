@@ -36,13 +36,13 @@ Gateway 根据 `spring.datasource.url` 创建数据库 Bean。Go CLI 自己加�
 
 ## Go CLI 配置
 
-兼容 `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`、`BUS_SCHEMA`、`BUS_BATCH_SIZE`、`BUS_LOCK_TTL_SECONDS`、`PGEVENTBUS_DB_OWNER` 以及对应 `--spring.datasource.*`、`--bus.*` 选项。URL 支持原生 PostgreSQL 和原示例 JDBC 前缀；默认 schema bus、批大小 100、TTL 30 秒。
+CLI 使用 `pg-eventbus.toml`，通过 `[database]` 配置 url/user/password/schema，通过 `[consumer]` 配置 batch_size/lock_ttl_seconds，顶层 timeout 可设为 `30s` 等 Go duration。完整示例见 [pg-eventbus.example.toml](../cli/pg-eventbus.example.toml)。默认 schema bus、批大小 100、TTL 30 秒。
 
-优先级为选项 > 环境变量 > 选定文件 > 默认值。`--config` 指定文件；未指定时从当前目录选择唯一的 application.yml、application.yaml 或 application.properties，存在多个则报配置错误。仅支持数据源、schema、批大小、TTL 和 PostgreSQL driver-class-name 键；Java 专用的 bus.enabled、bus.max-retries、profiles、配置导入、占位符、Hikari 属性不支持。原生 URL 由 pgx 解析，JDBC 参数白名单及文件格式边界见 CLI README。
+优先级为选项 > 环境变量 > TOML > 默认值。文件选择为 `--config` > `PGEVENTBUS_CONFIG` > 当前目录的 pg-eventbus.toml；只有默认文件可缺省。环境变量使用 `PGEVENTBUS_DATABASE_URL/USER/PASSWORD`、`PGEVENTBUS_SCHEMA`、`PGEVENTBUS_BATCH_SIZE`、`PGEVENTBUS_LOCK_TTL_SECONDS`、`PGEVENTBUS_TIMEOUT`；参数为 `--database-url`、`--database-user`、`--database-password`、`--schema`、`--batch-size`、`--lock-ttl-seconds`、`--timeout`。URL 仅接受原生 PostgreSQL 格式。
 
 `--timeout 30s` 可设置整次操作时限，默认 0；Ctrl+C 取消请求。帮助不连接数据库。运行时不依赖 JVM、psql、其它 module 或外部 SQL 文件。
 
-环境中的 `SPRING_PROFILES_*`、`SPRING_CONFIG_*`、`SPRING_APPLICATION_JSON` 和未支持的 `SPRING_DATASOURCE_*` 不会静默忽略：显式设置（含空值）会在连库前返回退出码 2。数据源允许 URL、USERNAME、PASSWORD、DRIVER_CLASS_NAME，driver 只接受 org.postgresql.Driver；无关系统环境变量不受限制。
+CLI 不再读取 Spring/BUS 环境映射、application.* 或 YAML/properties，不再提供 driver、JDBC URL 和点分参数兼容。旧环境作为无关环境忽略，显式指定旧格式文件或旧参数会报错。TOML 未知键、重复键、类型错误和语法错误均失败且诊断不泄露文件内容；不展开占位符。Java Gateway/客户端的配置保持原样。
 
 ## Go / Python 直连配置
 
@@ -73,7 +73,7 @@ SET search_path = analytics, pg_temp;
 
 CLI 的合并模板则使用 `BEGIN/COMMIT` 和事务内 `SET LOCAL`。表、函数及函数体中的对象引用均不带 schema 前缀；函数通过 `SET search_path FROM CURRENT` 保存安装时的搜索路径，因此调用方无需设置相同路径。`pg_catalog` 隐式优先查找，`pg_temp` 显式放在末尾。安装 schema 仅应允许可信的 DDL 账号创建对象。
 
-手动执行前，还需将授权脚本中的 `app_role` 改为已存在的应用角色；授权和分区检查自动使用选定 schema。拆分安装时，先修改 `docs/sql/bootstrap.sql` 中的 `CREATE SCHEMA` 和 `SET search_path`，再在同一连接内按依赖顺序执行其余脚本。CLI 安装继续使用 `bus.schema` / `BUS_SCHEMA` 选择 schema，运行时配置也应使用相同名称。
+手动执行前，还需将授权脚本中的 `app_role` 改为已存在的应用角色；授权和分区检查自动使用选定 schema。拆分安装时，先修改 `docs/sql/bootstrap.sql` 中的 `CREATE SCHEMA` 和 `SET search_path`，再在同一连接内按依赖顺序执行其余脚本。CLI 安装使用 TOML 的 database.schema、`--schema` 或 `PGEVENTBUS_SCHEMA` 选择 schema，运行时也应使用相同名称。
 
 先创建数据库和授权角色，再用具有 DDL 和授权权限的账号配置数据源并执行：
 

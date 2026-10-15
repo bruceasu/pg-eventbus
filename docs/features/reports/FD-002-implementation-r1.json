@@ -1,0 +1,39 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "worker-report",
+  "fd_id": "FD-002",
+  "source_event": "FD-002-000003-design-ready",
+  "human_report": "FD-002-implementation-r1.md",
+  "data": {
+    "summary": "Native TOML configuration replaces Spring/YAML/properties/JDBC compatibility in CLI.",
+    "worker_session": "fd002-worker-20261015-toml",
+    "base_commit": "2939b1d",
+    "changed_paths": [
+      "cli/internal/app/config.go",
+      "cli/internal/app/command.go",
+      "cli/go.mod",
+      "cli/go.sum",
+      "cli/pg-eventbus.example.toml",
+      "cli/README.md",
+      "README.md",
+      "docs/pg-eventbus-schema-and-cli-addendum.md"
+    ],
+    "commands": [
+      "go mod edit (unquoted initial attempt failed; quoted retry succeeded)",
+      "go mod download github.com/BurntSushi/toml",
+      "go mod tidy",
+      "read pinned TOML decode.go/meta.go/parse.go",
+      "GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=off go build -o ../.cache/compile/pg-eventbus-cli.exe .",
+      "git diff --check",
+      "git diff --name-only 2939b1d -- gateway client docs/sql cli/internal/db cli/sql cli/internal/app/run.go cli/internal/app/output.go cli/main.go"
+    ],
+    "results": [
+      "fixed TOML v1.4.0 and checksum; direct YAML dependency removed",
+      "local Windows offline compile-only passed, executable not run",
+      "whitespace check passed; protected code paths unchanged",
+      "static mapping of AC-01 through AC-05 in Markdown",
+      "old Spring compatibility acceptance explicitly superseded by latest user requirement; FD-001 archive unchanged"
+    ],
+    "residual_risk": "TOML/environment/flag combinations, CLI execution, PostgreSQL behavior and cross-platform runtime unverified; no tests, linter, formatter or release build executed."
+  }
+}

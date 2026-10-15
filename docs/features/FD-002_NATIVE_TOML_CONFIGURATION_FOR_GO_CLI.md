@@ -1,7 +1,7 @@
 # FD-002: Go CLI 原生 TOML 配置
 
-**Status:** Open
-**Revision:** 3
+**Status:** Complete
+**Revision:** 5
 **Priority:** Medium
 **Evidence policy:** Dual
 
@@ -65,9 +65,9 @@ lock_ttl_seconds = 30
 
 ### TODO
 
-- [ ] 1.1 原生配置与 TOML 解析。
-- [ ] 1.2 示例与迁移说明。
-- [ ] 1.3 编译与静态证据。
+- [x] 1.1 原生配置与 TOML 解析。
+- [x] 1.2 示例与迁移说明。
+- [x] 1.3 编译与静态证据。
 
 ## Acceptance
 
@@ -84,6 +84,20 @@ lock_ttl_seconds = 30
 依赖准备沿用会话已有明确授权；锁定版本与 go.sum。编译在 cli 目录设置 GOTOOLCHAIN=local、CGO_ENABLED=0、GOPROXY=off，执行 `go build -o ../.cache/compile/pg-eventbus-cli.exe .`，临时产物不运行、不当作发布构建。不执行测试、formatter、linter、程序或数据库操作。独立 Reviewer 仅评估上述当前验收与实际证据；可选测试仍需用户明确调用 fd-test。
 
 未运行 TOML/环境实际组合场景、真实 PostgreSQL 或跨平台程序，保留相应残余风险。编译和静态阅读不能替代运行验证。
+
+### Worker evidence
+
+- Worker session `fd002-worker-20261015-toml`, source event `FD-002-000003-design-ready`.
+- Worktree coordinates verified: main / feature/FD-002 / .wt/FD-002; actual isolation base 2939b1d.
+- All three work items implemented. Local-toolchain, CGO-disabled, offline compile-only passed. No tests or application/database execution.
+- Dual report: docs/features/reports/FD-002-implementation-r1.md and JSON.
+- Static protection check shows Gateway, clients, SQL and CLI database/execution/output paths unchanged. No active blocker; independent Reviewer pending.
+
+### Reviewer R1
+
+- Reviewer session `fd002-reviewer-20261015-98eac671`, exact source event `FD-002-000004-implementation-ready`; reviewed HEAD `7245d65` against `2939b1d`.
+- Outcome **verification-passed**, first outcome in this cycle; no blocking finding. Native TOML acceptance supersedes prior Spring conventions; no behavior requirement waived.
+- Dual evidence: `docs/features/reviews/FD-002-review-r1.md` plus JSON. Independently checked actual diff, configuration/source ranks, strict TOML parser branches and protected paths. No tests, program/database execution or extra builds; recorded runtime risks remain.
 
 ## Sources
 

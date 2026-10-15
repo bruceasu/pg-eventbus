@@ -39,7 +39,9 @@ go build -o bin/pg-eventbus-cli.exe .
 
 ## 配置
 
-Java 应用在运行目录准备 `application.yml`，或使用对应的 Spring 环境变量。下面是 Java 配置；Go CLI 只接受其数据源、schema、批大小与 TTL 子集，示例见 [CLI 说明](cli/README.md)：
+Go CLI 使用运行目录的 `pg-eventbus.toml`，也可通过 `--config` 选择文件；示例见 [pg-eventbus.example.toml](cli/pg-eventbus.example.toml)。参数采用 `--database-url`、`--schema` 等短名称，环境变量统一为 `PGEVENTBUS_*`，完整映射见 [CLI 说明](cli/README.md)。
+
+下面的 `application.yml` 和 Spring 环境变量仅适用于 Java Gateway/客户端：
 
 ```yaml
 spring:
@@ -57,7 +59,7 @@ bus:
   max-retries: 5
 ```
 
-CLI 与 Gateway 自带批大小 100、锁 TTL 30 秒的配置；Java 直连库仍由宿主应用提供配置。环境变量为 `BUS_SCHEMA`、`BUS_BATCH_SIZE`、`BUS_LOCK_TTL_SECONDS`，数据源使用 `SPRING_DATASOURCE_*`。
+CLI 与 Gateway 默认批大小 100、锁 TTL 30 秒；Java 直连库由宿主提供配置。Java 环境变量使用 `BUS_*`、`SPRING_DATASOURCE_*`；Go CLI 使用 `PGEVENTBUS_SCHEMA`、`PGEVENTBUS_DATABASE_URL` 等独立命名，不再兼容 Java 配置格式。
 
 Go/Python 直连客户端使用 `PGEVENTBUS_SCHEMA` 和外部命令的连接配置；HTTP 客户端的 schema 由网关决定。详见[配置与 CLI](docs/pg-eventbus-schema-and-cli-addendum.md)。
 
@@ -80,7 +82,7 @@ $cli = '.\cli\bin\pg-eventbus-cli.exe'
 
 `db init` 执行随 CLI 打包的 `init.sql`，安装表、函数并授权；它本身不预建分区。发布函数会确保当前分区存在。`ensure-future` 创建未来 6 个月分区。
 
-SQL 对象引用不带 schema 前缀。手动安装使用 `docs/sql/` 拆分脚本，在 bootstrap.sql 开头选择 schema 并调整授权角色；CLI 的 `sql/init.sql` 是内嵌安装模板，通过 `BUS_SCHEMA` 或 `--bus.schema` 渲染。具体步骤见[初始化说明](docs/pg-eventbus-schema-and-cli-addendum.md#数据库初始化)。
+SQL 对象引用不带 schema 前缀。手动安装使用 `docs/sql/` 拆分脚本，在 bootstrap.sql 开头选择 schema 并调整授权角色；CLI 的 `sql/init.sql` 是内嵌安装模板，通过 `PGEVENTBUS_SCHEMA`、`--schema` 或 TOML 的 database.schema 渲染。具体步骤见[初始化说明](docs/pg-eventbus-schema-and-cli-addendum.md#数据库初始化)。
 
 `targetSystem` 必须与消费者名称一致才会被该消费者拉取；SQL 中空目标（`NULL`）表示广播。`poll` 不自动提交位点，业务处理完成后才调用 `commit`。Java/网关的拉取会获取租约锁，提交要求同一实例持有未过期锁。提交不会释放锁，租约未到期时再次拉取（即使同一实例）也会拿锁失败。
 

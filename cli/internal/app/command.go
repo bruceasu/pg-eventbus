@@ -18,9 +18,9 @@ const usage = `Usage: pg-eventbus-cli [options] <command>
   event set-cursor|commit <consumerName> <instanceId> <newLastId>
   event recover <consumerName> <isoInstant>
   maintenance run
-Options: --config <path>, --timeout <duration>, --spring.datasource.url=<url>,
-  --spring.datasource.username=<name>, --spring.datasource.password=<password>,
-  --bus.schema=<name>, --bus.batch-size=<n>, --bus.lock-ttl-seconds=<n>
+Options: --config <path>, --timeout <duration>, --database-url=<url>,
+  --database-user=<name>, --database-password=<password>, --schema=<name>,
+  --batch-size=<n>, --lock-ttl-seconds=<n>
 `
 
 type command struct {
@@ -32,9 +32,8 @@ type command struct {
 
 var optionKeys = map[string]bool{
 	"config": true, "timeout": true,
-	"spring.datasource.url": true, "spring.datasource.username": true,
-	"spring.datasource.password": true, "spring.datasource.driver-class-name": true,
-	"bus.schema": true, "bus.batch-size": true, "bus.lock-ttl-seconds": true,
+	"database-url": true, "database-user": true, "database-password": true,
+	"schema": true, "batch-size": true, "lock-ttl-seconds": true,
 }
 
 func parse(args []string) (command, error) {

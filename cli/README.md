@@ -7,10 +7,10 @@ cd cli
 $env:GOTOOLCHAIN = 'local'
 $env:CGO_ENABLED = '0'
 go build -o bin/pg-eventbus-cli.exe .
-$env:SPRING_DATASOURCE_URL = 'jdbc:postgresql://localhost:5432/pg_eventbus'
-$env:SPRING_DATASOURCE_USERNAME = 'postgres'
-$env:SPRING_DATASOURCE_PASSWORD = 'change-me'
-$env:BUS_SCHEMA = 'analytics'
+$env:PGEVENTBUS_DATABASE_URL = 'postgresql://localhost:5432/pg_eventbus'
+$env:PGEVENTBUS_DATABASE_USER = 'postgres'
+$env:PGEVENTBUS_DATABASE_PASSWORD = 'change-me'
+$env:PGEVENTBUS_SCHEMA = 'analytics'
 .\bin\pg-eventbus-cli.exe db init app_role
 .\bin\pg-eventbus-cli.exe partition ensure-current
 .\bin\pg-eventbus-cli.exe partition ensure-future
@@ -21,25 +21,37 @@ Linux amd64：在本目录执行 `CGO_ENABLED=0 GOTOOLCHAIN=local GOOS=linux GOA
 
 保留 `db init`、`partition`、`event send|publish`、`event get|poll`、`event set-cursor|commit`、`event recover`、`maintenance run`；不预建分区，不自动提交位点或释放租约。使用 `--help` 查看语法，help 不连接数据库。
 
-配置优先级为命令行 > 环境变量 > 配置文件 > 默认值。保留 `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`、`BUS_SCHEMA`、`BUS_BATCH_SIZE`、`BUS_LOCK_TTL_SECONDS` 和 `PGEVENTBUS_DB_OWNER`。URL 支持 `jdbc:postgresql://`、`postgresql://`、`postgres://`。默认 schema `bus`、批大小 100、TTL 30 秒。显式用户名、密码覆盖同级或低优先级 URL 中的凭证；高优先级 URL 内凭证不会被低优先级文件覆盖；空密码可显式指定。
+配置使用 TOML。将 [pg-eventbus.example.toml](pg-eventbus.example.toml) 复制为运行目录的 `pg-eventbus.toml`，也可以通过 `--config <path>` 或 `PGEVENTBUS_CONFIG` 指定文件（参数优先）。默认文件缺失时可仅使用环境变量/参数；显式文件缺失则报错。文件最大 1 MiB，未知键、重复键、错误类型或无效 TOML 均报配置错误，诊断不包含源文件内容。
 
-支持 `--spring.datasource.url=...`、`--spring.datasource.username=...`、`--spring.datasource.password=...`、`--bus.schema=...`、`--bus.batch-size=...`、`--bus.lock-ttl-seconds=...`，全局选项可置于命令前后。`--` 后全部按位置参数处理；JSON 必须作为完整的单个参数传入，内部字符串不解析为选项。避免在命令行传密码，优先使用环境变量。
+```toml
+timeout = "0s"
 
-配置文件可用 `--config <path>` 选择；否则只在当前目录寻找 `application.yml`、`application.yaml`、`application.properties`，同时存在多个时要求显式选择。支持上述 datasource 和 bus 键，兼容值为 `org.postgresql.Driver` 的 driver-class-name。YAML 支持单文档、标量和嵌套映射，不支持别名、序列、重复键。properties 支持普通 key=value，不支持转义、续行或 Unicode 转义，需要特殊字符时使用 YAML。
+[database]
+url = "postgresql://localhost:5432/pg_eventbus"
+user = "app_role"
+password = "change-me"
+schema = "analytics"
 
-```yaml
-spring:
-  datasource:
-    url: postgresql://localhost:5432/pg_eventbus
-    username: app_role
-    password: change-me
-bus:
-  schema: analytics
-  batch-size: 100
-  lock-ttl-seconds: 30
+[consumer]
+batch_size = 100
+lock_ttl_seconds = 30
 ```
 
-不复刻 Spring profiles、配置导入、占位符展开、任意 Hikari 属性；未知配置键会明确报错。在连库前拒绝环境中显式设置的 `SPRING_PROFILES_*`、`SPRING_CONFIG_*`、`SPRING_APPLICATION_JSON`，以及未支持的 `SPRING_DATASOURCE_*`（包括 Hikari），即使值为空也报配置错误，不回退到基础配置执行命令。仅保留数据源 URL、USERNAME、PASSWORD、DRIVER_CLASS_NAME；后者只能是 `org.postgresql.Driver`。无关操作系统环境变量不受影响。Java 客户端使用的 `bus.enabled`、`bus.max-retries` 不属于 CLI 配置。JDBC 查询参数仅支持 sslmode、sslrootcert、sslcert、sslkey、application_name、connectTimeout、user、password、options；connectTimeout 转为 connect_timeout，其它 JDBC 参数报错。原生 URL 参数由 pgx 校验。删除旧 `PGEVENTBUS_SQL_DIR` 和向上查找脚本的回退路径。
+| 参数 | 环境变量 | TOML 键 |
+|---|---|---|
+| `--database-url` | `PGEVENTBUS_DATABASE_URL` | `database.url` |
+| `--database-user` | `PGEVENTBUS_DATABASE_USER` | `database.user` |
+| `--database-password` | `PGEVENTBUS_DATABASE_PASSWORD` | `database.password` |
+| `--schema` | `PGEVENTBUS_SCHEMA` | `database.schema` |
+| `--batch-size` | `PGEVENTBUS_BATCH_SIZE` | `consumer.batch_size` |
+| `--lock-ttl-seconds` | `PGEVENTBUS_LOCK_TTL_SECONDS` | `consumer.lock_ttl_seconds` |
+| `--timeout` | `PGEVENTBUS_TIMEOUT` | `timeout` |
+
+配置值优先级为参数 > 环境变量 > TOML > 默认值。默认 schema bus、批大小 100、TTL 30 秒、timeout 0；数值必须为正 int32，timeout 使用 Go duration，如 `30s`、`2m`。显式空密码与缺失值不同；单独用户名/密码覆盖同级或低优先级 URL 中的凭证，高优先级 URL 内凭证不被低优先级文件覆盖。初始化授权角色继续由 `db init <owner>` 或 `PGEVENTBUS_DB_OWNER` 提供。
+
+参数支持 `--key=value` 和 `--key value`，可位于命令前后；`--` 后全部按位置参数处理。JSON 必须作为完整单个参数传入，内部字符串不解析为选项。密码优先通过环境变量传入。
+
+URL 只接受原生 `postgresql://` 或 `postgres://`，连接参数使用 PostgreSQL/pgx 名称，例如 connect_timeout。TOML 键区分大小写，`${...}` 是普通字符串，不做变量展开。旧 YAML/properties、application.*、Spring/BUS 环境映射、driver 配置、点分参数和 JDBC URL 转换均已移除；旧环境变量作为无关环境被忽略，旧文件不自动读取，显式旧文件格式或点分参数会报错。Gateway/Java 客户端仍使用各自配置，不能拿其配置直接给 CLI。
 
 成功的事件/维护操作向 stdout 输出单行 JSON，时间保留旧 CLI 的数值型 epoch seconds，包含纳秒小数；ID 为 int64，payload 大整数不经浮点数解析。错误与诊断只写 stderr；初始化成功保留 `db init completed` 文本。退出码：0 成功/帮助，1 运行错误，2 参数/配置错误，130 Ctrl+C。租约获取失败或 commit=false 是正常业务结果，退出码仍为 0。
 

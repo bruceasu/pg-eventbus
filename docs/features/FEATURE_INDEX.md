@@ -6,12 +6,13 @@ FD 文件是设计与进度的主记录；本索引可由 `aiw fd` 重建。
 
 | FD | Title | Status | Priority |
 | --- | --- | --- | --- |
-| [FD-002](FD-002_NATIVE_TOML_CONFIGURATION_FOR_GO_CLI.md) | Go CLI 原生 TOML 配置 | Open | Medium |
+| - | - | - | - |
 
 ## Completed
 
 | FD | Title | Status | Priority |
 | --- | --- | --- | --- |
+| [FD-002](FD-002_NATIVE_TOML_CONFIGURATION_FOR_GO_CLI.md) | Go CLI 原生 TOML 配置 | Complete | Medium |
 | [FD-001](archive/FD-001/FD-001_MIGRATE_CLI_TO_GO.md) | 将维护 CLI 迁移到 Go | Complete | Medium |
 
 ## Deferred / Closed

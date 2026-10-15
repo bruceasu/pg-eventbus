@@ -1,0 +1,12 @@
+# Copy to pg-eventbus.toml, or select it explicitly with --config.
+timeout = "0s"
+
+[database]
+url = "postgresql://localhost:5432/pg_eventbus"
+user = "app_role"
+password = "change-me"
+schema = "bus"
+
+[consumer]
+batch_size = 100
+lock_ttl_seconds = 30

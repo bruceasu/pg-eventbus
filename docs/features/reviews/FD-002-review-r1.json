@@ -1,0 +1,34 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "reviewer-report",
+  "fd_id": "FD-002",
+  "source_event": "FD-002-000004-implementation-ready",
+  "human_report": "FD-002-review-r1.md",
+  "data": {
+    "reviewer_session": "fd002-reviewer-20261015-98eac671",
+    "base_commit": "2939b1d",
+    "reviewed_commit": "7245d65",
+    "fd_revision": 4,
+    "review_number": 1,
+    "outcome": "verification-passed",
+    "findings": [],
+    "commands": [
+      "Get-Content -Encoding utf8 on FD, Worker reports, CLI source/docs/example and pinned TOML decoder source",
+      "git diff --stat 2939b1d; git diff 2939b1d -- <paths>; git status --short; git rev-parse HEAD",
+      "rg on legacy configuration names and TOML parser branches",
+      "aiw fd resume FD-002",
+      "aiw fd claim FD-002 FD-002-000004-implementation-ready --session fd002-reviewer-20261015-98eac671",
+      "git diff --check",
+      "git diff --name-only 2939b1d -- gateway client docs/sql cli/internal/db cli/sql cli/internal/app/run.go cli/internal/app/output.go cli/main.go docs/features/archive"
+    ],
+    "results": [
+      "AC-01 through AC-05 supported by static code review and recorded Worker compile-only evidence",
+      "TOML strict types, unknown/case-sensitive keys, duplicate-key failures and pointer allocation checked in pinned parser source",
+      "New native mapping, source ranks, empty password and redacted diagnostics align with current acceptance",
+      "No whitespace errors or protected path changes",
+      "Old Spring acceptance superseded by explicit current FD decision; no behavior waiver"
+    ],
+    "skipped_checks": ["tests", "CLI execution", "database operations", "additional compilation", "linters", "formatters", "release builds", "cross-platform execution", "benchmarks"],
+    "residual_risk": "TOML/env/flag combinations, real PostgreSQL and dual-platform behavior have not been runtime-validated."
+  }
+}
