@@ -225,3 +225,5 @@ CLI 支持从仅包含 `cli/` 源码与 module 文件的目录独立构建。目
 - [当前 CLI 说明](../../cli/README.md)、[CLI runner](../../cli/internal/app/command.go)、[数据库调用](../../cli/internal/db/events.go)、[初始化脚本](../../cli/sql/init.sql)。这些是迁移前路径，实施完成后更新为实际实现路径并保留历史基线引用。
 - [配置与初始化指南](../pg-eventbus-schema-and-cli-addendum.md)、[数据库语义](../PG-EventBus.md)、[根 POM](../../pom.xml)。
 - 技术接口参考：[pgx](https://pkg.go.dev/github.com/jackc/pgx/v5)、[Go embed](https://pkg.go.dev/embed)。本阶段未访问网络或锁定浮动依赖版本。
+
+**Completed:** 2026-10-15
