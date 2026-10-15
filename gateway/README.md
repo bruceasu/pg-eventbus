@@ -17,20 +17,19 @@ $env:PGEVENTBUS_SCHEMA = 'analytics'
 
 配置只读环境变量；不加载 Spring application.yml/properties、TOML 或 CLI 配置文件：
 
-| 原生变量 | 默认值 | 旧环境变量别名 |
+| 原生变量 | 默认值 |
 |---|---|---|
-| `PGEVENTBUS_DATABASE_URL` | 必填 | `SPRING_DATASOURCE_URL` |
-| `PGEVENTBUS_DATABASE_USER` | URL/pgx 默认 | `SPRING_DATASOURCE_USERNAME` |
-| `PGEVENTBUS_DATABASE_PASSWORD` | URL/pgx 默认 | `SPRING_DATASOURCE_PASSWORD` |
-| `PGEVENTBUS_SCHEMA` | bus | `BUS_SCHEMA` |
-| `PGEVENTBUS_BATCH_SIZE` | 100 | `BUS_BATCH_SIZE` |
-| `PGEVENTBUS_LOCK_TTL_SECONDS` | 30 | `BUS_LOCK_TTL_SECONDS` |
-| `PGEVENTBUS_LISTEN_ADDR` | :8080 | `SERVER_PORT`（仅端口） |
-| `PGEVENTBUS_REQUEST_TIMEOUT` | 30s | 无 |
+| `PGEVENTBUS_DATABASE_URL` | 必填 |
+| `PGEVENTBUS_DATABASE_USER` | URL/pgx 默认 |
+| `PGEVENTBUS_DATABASE_PASSWORD` | URL/pgx 默认 |
+| `PGEVENTBUS_SCHEMA` | bus |
+| `PGEVENTBUS_BATCH_SIZE` | 100 |
+| `PGEVENTBUS_LOCK_TTL_SECONDS` | 30 |
+| `PGEVENTBUS_LISTEN_ADDR` | :8080 |
+| `PGEVENTBUS_REQUEST_TIMEOUT` | 30s |
 
-每项显式原生变量优先于别名，包括空值；用户名/密码再覆盖 URL 内凭证。原生 URL 必须是带主机的 `postgresql://` 或 `postgres://`；旧 URL 别名额外接受 `jdbc:postgresql://` 前缀，不转换 JDBC 专用参数。schema 去首尾空白，空值回退 bus，通过标识符引用保留大小写。批大小和 TTL 必须为正 int32；监听地址为 `host:port`（如 `127.0.0.1:8080` 或 `:8080`），端口 1..65535；请求超时为正 Go duration，最多 24h。启动连接检查最多 10 秒；每次请求的期限覆盖等待连接及 SQL，客户端断开会取消请求。
+每项显式原生变量优先于别名，包括空值；用户名/密码再覆盖 URL 内凭证。原生 URL 必须是带主机的 `postgresql://` 或 `postgres://`。schema 去首尾空白，空值回退 bus，通过标识符引用保留大小写。批大小和 TTL 必须为正 int32；监听地址为 `host:port`（如 `127.0.0.1:8080` 或 `:8080`），端口 1..65535；请求超时为正 Go duration，最多 24h。启动连接检查最多 10 秒；每次请求的期限覆盖等待连接及 SQL，客户端断开会取消请求。
 
-迁移时把 Spring 文件中的 URL、用户名/密码和 bus 配置移入上述环境变量，再将 `java -jar ...` 改为运行 Go 程序。旧环境变量可以继续使用，根 Maven 不再构建 gateway。Java 客户端构建与配置不变。
 
 9 个 POST 路由、成功信封及 DTO 见[根 README](../README.md#http-网关)和[客户端指南](../docs/pg-eventbus-client-guide.md)。网关自有模型位于 [internal/store/model.go](internal/store/model.go)，时间为 RFC3339Nano 字符串，ID 为 int64；空事件是 `[]`，可空锁信息/广播目标为 null。poll 先获取租约，失败不查询，成功与 commit 均不释放锁；正常信封 success 不代表拿锁或提交成功。
 
