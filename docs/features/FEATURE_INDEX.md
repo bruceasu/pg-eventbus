@@ -6,7 +6,7 @@ FD 文件是设计与进度的主记录；本索引可由 `aiw fd` 重建。
 
 | FD | Title | Status | Priority |
 | --- | --- | --- | --- |
-| - | - | - | - |
+| [FD-003](FD-003_NUMBER_SQL_SOURCES_AND_GENERATE_CLI_BOOTSTRAP.md) | SQL 顺序编号、唯一来源与初始化脚本生成 | Open | Medium |
 
 ## Completed
 
