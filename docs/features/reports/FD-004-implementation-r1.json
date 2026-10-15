@@ -1,0 +1,30 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "worker-report",
+  "fd_id": "FD-004",
+  "source_event": "FD-004-000003-design-ready",
+  "human_report": "FD-004-implementation-r1.md",
+  "data": {
+    "summary": "独立 Go/pgx Gateway 替换 Java 实现，保留九个 POST 路由、SQL 和 HTTP 客户端契约，更新环境配置与迁移文档。",
+    "session": "fd004-host-20261016-5de84e0f",
+    "diff_base": "fff50cc",
+    "implementation_head": "51da510",
+    "changed_paths": ["gateway", "pom.xml", "README.md", "docs/README.md", "docs/PG-EventBus.md", "docs/pg-eventbus-client-guide.md", "docs/pg-eventbus-schema-and-cli-addendum.md", "docs/features/FD-004_REWRITE_GATEWAY_IN_GO.md"],
+    "commands": [
+      {"command": "GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=off GOSUMDB=off go build -mod=readonly -o ../.cache/compile/pg-eventbus-gateway.exe .", "cwd": "gateway", "runs": 2, "exit_codes": [0, 0], "reason_for_repeat": "静态发现并修正 Java recover 数值时间输入兼容后重新编译"},
+      {"command": "git diff --check fff50cc", "exit_code": 0},
+      {"command": "javap -c -p -classpath <local-jackson-2.19.2-jar> com.fasterxml.jackson.datatype.jsr310.deser.InstantDeserializer", "exit_code": 0, "purpose": "只读检查本地数值时间反序列化签名与路径"}
+    ],
+    "results": [
+      {"acceptance": "AC-01", "result": "supported", "evidence": "独立 Go module、无 JVM/psql/项目模块依赖；根 Maven 仅 Java 客户端"},
+      {"acceptance": "AC-02", "result": "supported-static", "evidence": "九路由、成功信封、int64、nullable、RFC3339Nano、Java 数值 recover 输入"},
+      {"acceptance": "AC-03", "result": "supported-static", "evidence": "SQL 函数/参数、锁失败短路、commit=false、recover、五个维护入口"},
+      {"acceptance": "AC-04", "result": "supported-static", "evidence": "环境优先级/默认值、JSON/参数限制、错误脱敏、连接池/context/有界退出"},
+      {"acceptance": "AC-05", "result": "supported-static", "evidence": "当前文档迁移及链接更新，历史归档未改"},
+      {"acceptance": "AC-06", "result": "worker-complete-review-pending", "evidence": "离线编译及静态检查通过，独立 Reviewer/交付待后续事件"}
+    ],
+    "unrun_checks": ["tests", "HTTP runtime", "PostgreSQL runtime", "Maven build", "final release build", "formatters/linters/vet", "cross-platform execution", "network", "push/deploy"],
+    "blockers": [],
+    "residual_risk": "未运行 HTTP/数据库/并发/信号或跨平台验证；Spring 文件/旧错误页面/大请求需迁移；JDBC 专有参数不转换；无认证且原 SQL 清理边界不变。"
+  }
+}

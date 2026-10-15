@@ -1,0 +1,84 @@
+{
+    "schema":  "aiw.fd.evidence.v1",
+    "kind":  "reviewer-report",
+    "fd_id":  "FD-004",
+    "source_event":  "FD-004-000006-implementation-ready",
+    "human_report":  "FD-004-review-r2.md",
+    "data":  {
+                 "reviewer_session":  "fd004-reviewer-20261016-b72c9e1a",
+                 "base_commit":  "fff50cc",
+                 "incremental_base":  "f5b187d",
+                 "reviewed_commit":  "9231e307b2f8f255cea0ff956a567ac239551bfb",
+                 "repair_commit":  "3a987e7",
+                 "fd_revision":  6,
+                 "review_number":  2,
+                 "outcome":  "verification-passed",
+                 "findings":  [
+
+                              ],
+                 "resolved_findings":  [
+                                           {
+                                               "outcome":  "resolved-static",
+                                               "evidence":  "whole seconds \u003c 0 now makes nanos positive; -0.x preserves negative nanos, matching independently reviewed Jackson bytecode",
+                                               "id":  "R1/P2"
+                                           }
+                                       ],
+                 "commands":  [
+                                  "aiw fd resume FD-004",
+                                  "aiw fd claim FD-004 FD-004-000006-implementation-ready --session fd004-reviewer-20261016-b72c9e1a",
+                                  "git diff f5b187d..9231e307b2f8f255cea0ff956a567ac239551bfb",
+                                  "git diff --check fff50cc..9231e307b2f8f255cea0ff956a567ac239551bfb",
+                                  "git diff --name-only f5b187d..9231e307b2f8f255cea0ff956a567ac239551bfb",
+                                  "git diff --name-only fff50cc..9231e307b2f8f255cea0ff956a567ac239551bfb -- cli client docs/sql docs/features/archive",
+                                  "git rev-parse HEAD; git status --short",
+                                  "Get-Content -Encoding utf8 current FD, Worker R2 Markdown/JSON, instant.go and main.go"
+                              ],
+                 "results":  [
+                                 {
+                                     "acceptance":  "AC-01",
+                                     "outcome":  "supported-static"
+                                 },
+                                 {
+                                     "outcome":  "supported-static",
+                                     "evidence":  "R1 whole-contract review plus resolved negative numeric timestamp compatibility",
+                                     "acceptance":  "AC-02"
+                                 },
+                                 {
+                                     "outcome":  "supported-static",
+                                     "evidence":  "SQL/lock/commit/maintenance unchanged; recover repair resolved",
+                                     "acceptance":  "AC-03"
+                                 },
+                                 {
+                                     "outcome":  "supported-static",
+                                     "evidence":  "existing config/API/pool/context evidence plus root cancellation before pool.Close",
+                                     "acceptance":  "AC-04"
+                                 },
+                                 {
+                                     "outcome":  "supported-static",
+                                     "evidence":  "documentation rule consistent; protected paths unchanged",
+                                     "acceptance":  "AC-05"
+                                 },
+                                 {
+                                     "outcome":  "review-passed-delivery-pending",
+                                     "evidence":  "Worker records third offline build after repair; Reviewer whitespace diff passed; PM merge/archive pending",
+                                     "acceptance":  "AC-06"
+                                 }
+                             ],
+                 "skipped_checks":  [
+                                        "tests",
+                                        "additional compilation",
+                                        "HTTP/database/application execution",
+                                        "Maven",
+                                        "formatters/linters/vet",
+                                        "network",
+                                        "final build",
+                                        "cross-platform execution",
+                                        "push/deploy",
+                                        "optional fd-test evaluation"
+                                    ],
+                 "blockers":  [
+
+                              ],
+                 "residual_risk":  "Runtime PostgreSQL/HTTP/concurrency/lease/signal/cross-platform behavior remains unverified. Documented migration/input restrictions, absent auth and original SQL cleanup boundaries remain."
+             }
+}

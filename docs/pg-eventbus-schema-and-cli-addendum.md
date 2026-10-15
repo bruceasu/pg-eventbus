@@ -1,8 +1,16 @@
 # 配置、数据库初始化与 CLI
 
-CLI 已迁移至 Go/pgx，Gateway 与 Java 客户端保持 Java/JDBC。项目概览见[README](../README.md)，Go CLI 完整构建及配置规则见 [cli/README](../cli/README.md)。
+CLI 与 Gateway 使用独立 Go/pgx module，Java 直连客户端保持 JDBC。项目概览见[README](../README.md)，Go CLI 配置见 [cli/README](../cli/README.md)，Gateway 迁移见 [gateway/README](../gateway/README.md)。
 
-## Java / 网关配置
+## Go Gateway 配置
+
+Gateway 只读取环境变量，不读取 Spring 文件或 CLI TOML。原生变量包括 `PGEVENTBUS_DATABASE_URL/USER/PASSWORD`、`PGEVENTBUS_SCHEMA`、`PGEVENTBUS_BATCH_SIZE`、`PGEVENTBUS_LOCK_TTL_SECONDS`、`PGEVENTBUS_LISTEN_ADDR`、`PGEVENTBUS_REQUEST_TIMEOUT`；默认 schema bus、批大小 100、TTL 30 秒、监听 :8080、请求期限 30s。URL 必填，启动连接检查最多 10 秒。
+
+每项原生环境变量优先于对应旧别名，包括显式空值；别名为 `SPRING_DATASOURCE_URL/USERNAME/PASSWORD`、`BUS_SCHEMA/BATCH_SIZE/LOCK_TTL_SECONDS` 和 `SERVER_PORT`。原生 URL 使用带主机 PostgreSQL URL，旧 URL 别名另接受 jdbc: 前缀；不转换 JDBC 专用参数。用户名/密码覆盖 URL。批大小/TTL 必须为正 int32；请求期限为正且最多 24h；监听端口 1..65535。完整优先级与退出码见 [Gateway 配置表](../gateway/README.md)。
+
+迁移时将 Spring 文件中的值改为环境变量，使用 Go 程序替代 JAR。Gateway 缺少或无效数据库配置会启动失败，不再通过 Spring 条件 Bean 隐藏 HTTP 路由。`--help` 无需配置、不连库；没有其它命令行参数。
+
+## Java 直连配置
 
 ```yaml
 spring:
@@ -12,20 +20,14 @@ spring:
     password: change-me
     driver-class-name: org.postgresql.Driver
 bus:
+  enabled: true
   schema: bus
   batch-size: 100
   lock-ttl-seconds: 30
+  max-retries: 5
 ```
 
-以上是 Gateway 配置示例；Gateway 的 `bus` 配置只包含 schema、批大小和锁 TTL。默认值来自其配置类及 [application.properties](../gateway/src/main/resources/application.properties)：
-
-| 属性 | 默认值 | 环境变量 / 作用 |
-|---|---|---|
-| `bus.schema` | bus | `BUS_SCHEMA`；数据库函数所在 schema |
-| `bus.batch-size` | 100 | `BUS_BATCH_SIZE`；未提供正数 limit 时的批大小 |
-| `bus.lock-ttl-seconds` | 30 | `BUS_LOCK_TTL_SECONDS`；获取锁的 TTL（秒） |
-
-Java 直连客户端使用自己的 [PgEventBusProperties](../client/java/db/src/main/java/me/asu/pg_eventbus/core/PgEventBusProperties.java)，由宿主注册配置绑定及服务，其默认值如下。接入时须显式设置 `bus.enabled=true`、正数批大小、锁 TTL，以及使用重试服务时的最大重试数：
+以上只供 Java 直连客户端，由宿主注册 [PgEventBusProperties](../client/java/db/src/main/java/me/asu/pg_eventbus/core/PgEventBusProperties.java) 绑定及服务，其默认值如下。接入时须显式设置 `bus.enabled=true`、正数批大小、锁 TTL，以及使用重试服务时的最大重试数：
 
 | 属性 | 默认值 | 环境变量 / 作用 |
 |---|---|---|
@@ -36,11 +38,11 @@ Java 直连客户端使用自己的 [PgEventBusProperties](../client/java/db/src
 | `bus.lock-ttl-seconds` | 0 | `BUS_LOCK_TTL_SECONDS`；Java 拉取/回调/重试获取锁的 TTL |
 | `bus.max-retries` | 0 | `BUS_MAX_RETRIES`；Java 重试服务的失败阈值 |
 
-`bus.enabled`、`bus.consumer-name` 和 `bus.max-retries` 属于 Java 直连客户端，Gateway 不使用它们。schema 的空白值回退到 `bus`。调用会引用并转义标识符；Go CLI 初始化要求 schema 和授权角色符合 `[A-Za-z_][A-Za-z0-9_]*`，随后按标识符引用以保留大小写。
+`bus.enabled`、`bus.consumer-name` 和 `bus.max-retries` 属于 Java 直连客户端，Gateway 不使用它们。Java 和 Gateway 的 schema 空白值回退到 `bus`，引用并转义标识符；Go CLI 初始化要求 schema 和授权角色符合 `[A-Za-z_][A-Za-z0-9_]*`，随后引用以保留大小写。
 
 Java 配置不读取 `PGEVENTBUS_SCHEMA`。自定义 schema 使用 `bus.schema: analytics` 或 `BUS_SCHEMA=analytics`，初始化与运行时必须保持一致。
 
-Gateway 根据 `spring.datasource.url` 创建数据库 Bean。Go CLI 自己加载配置、创建原生 pgx 连接；两者都不依赖客户端或其它项目模块，也不使用 ORM。
+Gateway 创建 pgx 连接池，CLI 创建自己的原生 pgx 连接；两者均不依赖客户端或其它项目模块，也不使用 ORM。
 
 ## Go CLI 配置
 
@@ -52,7 +54,7 @@ TOML 文件最大 1 MiB，键区分大小写；批大小和 TTL 必须为正 int
 
 `--timeout 30s` 可设置整次操作时限，默认 0 不增加总时限；连接建立默认最多 10 秒，可通过 URL 的 connect_timeout 调整。Ctrl+C 取消请求。帮助不连接数据库。运行时不依赖 JVM、psql、其它 module 或外部 SQL 文件。
 
-CLI 不再读取 Spring/BUS 环境映射、application.* 或 YAML/properties，不再提供 driver、JDBC URL 和点分参数兼容。旧环境作为无关环境忽略，显式指定旧格式文件或旧参数会报错。TOML 未知键、重复键、类型错误和语法错误均失败且诊断不泄露文件内容；不展开占位符。Java Gateway/客户端的配置保持原样。
+CLI 不再读取 Spring/BUS 环境映射、application.* 或 YAML/properties，不再提供 driver、JDBC URL 和点分参数兼容。旧环境作为无关环境忽略，显式指定旧格式文件或旧参数会报错。TOML 未知键、重复键、类型错误和语法错误均失败且诊断不泄露文件内容；不展开占位符。Java 客户端配置不变；Gateway 具有独立的环境变量兼容规则，见上文。
 
 ## Go / Python 直连配置
 

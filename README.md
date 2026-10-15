@@ -11,11 +11,11 @@
 | `client/java/db` | 独立 Java 直连客户端，包含自身 JDBC、服务及 DTO |
 | `client/java/gateway` | 独立 Java Gateway 客户端，通过 JDK HTTP 调用网关 |
 | `cli` | 独立 Go 维护程序，自带初始化 SQL，通过 pgx 执行 SQL |
-| `gateway` | 独立 HTTP 服务，直接通过 JDBC 调用数据库函数 |
+| `gateway` | 独立 Go HTTP 服务，使用 pgx 连接池调用数据库函数 |
 | `client/go/db` / `client/python/db` | 通过外部 `psql` 命令访问数据库 |
 | `client/go/gateway` / `client/python/gateway` | 调用网关的 Go / Python 客户端 |
 
-客户端统一放在 `client/<语言>/db` 和 `client/<语言>/gateway`。CLI、Gateway 和客户端互不依赖；原 core、jdbc、contract 已合并到 Java 直连客户端，不再作为独立模块。CLI 使用 Go/pgx，Gateway 保持 Java/JDBC，均不使用 ORM。
+客户端统一放在 `client/<语言>/db` 和 `client/<语言>/gateway`。CLI、Gateway 和客户端互不依赖；原 core、jdbc、contract 已合并到 Java 直连客户端，不再作为独立模块。CLI 与 Gateway 均使用 Go/pgx，不使用 ORM。
 
 ## 构建
 
@@ -25,12 +25,16 @@ Java 项目要求 **JDK 25**，使用 Spring Boot 3.5.4。根 POM 仅聚合构�
 .\mvnw.cmd clean install
 ```
 
-也可使用已安装的 Maven 执行 `mvn clean install`。Go 客户端要求 Go 1.22，CLI 要求 Go 1.25，Python 包要求 Python 3.10+；它们不属于 Maven reactor。
+也可使用已安装的 Maven 执行 `mvn clean install`。根 POM 仅聚合两个 Java 客户端。Go 客户端要求 Go 1.22，CLI 和 Gateway 要求 Go 1.25，Python 包要求 Python 3.10+；它们不属于 Maven reactor。
 
-Gateway 可单独通过 Maven 生成可执行 JAR；CLI 使用 Go 独立构建，无需 JVM 或项目内模块：
+Gateway 与 CLI 使用 Go 独立构建，无需 JVM 或项目内模块：
 
 ```powershell
-.\mvnw.cmd -f gateway/pom.xml clean package
+cd gateway
+$env:GOTOOLCHAIN = 'local'
+$env:CGO_ENABLED = '0'
+go build -o bin/pg-eventbus-gateway.exe .
+cd ..
 cd cli
 $env:GOTOOLCHAIN = 'local'
 $env:CGO_ENABLED = '0'
@@ -43,7 +47,9 @@ go build -o bin/pg-eventbus-cli.exe .
 
 Go CLI 使用运行目录的 `pg-eventbus.toml`，也可通过 `--config` 选择文件；示例见 [pg-eventbus.example.toml](cli/pg-eventbus.example.toml)。参数采用 `--database-url`、`--schema` 等短名称，环境变量统一为 `PGEVENTBUS_*`，完整映射见 [CLI 说明](cli/README.md)。
 
-下面的 `application.yml` 和 Spring 环境变量仅适用于 Java Gateway/客户端：
+Gateway 只读取环境变量，默认监听 `:8080`。推荐设置 `PGEVENTBUS_DATABASE_URL`、`PGEVENTBUS_DATABASE_USER`、`PGEVENTBUS_DATABASE_PASSWORD`、`PGEVENTBUS_SCHEMA`；旧 Spring 环境变量仍作为低优先级别名。完整映射、请求期限与迁移说明见 [gateway/README](gateway/README.md)。不再读取 Spring 配置文件。
+
+下面的 `application.yml` 仅适用于由宿主装配的 Java 直连客户端：
 
 ```yaml
 spring:
@@ -61,7 +67,7 @@ bus:
   max-retries: 5
 ```
 
-CLI 与 Gateway 默认批大小 100、锁 TTL 30 秒；Java 直连库由宿主提供配置。Java 环境变量使用 `BUS_*`、`SPRING_DATASOURCE_*`；Go CLI 使用 `PGEVENTBUS_SCHEMA`、`PGEVENTBUS_DATABASE_URL` 等独立命名，不再兼容 Java 配置格式。
+CLI 与 Gateway 默认批大小 100、锁 TTL 30 秒；Java 直连库由宿主提供配置。Java 环境变量使用 `BUS_*`、`SPRING_DATASOURCE_*`；Go CLI 使用 `PGEVENTBUS_*`，不兼容 Java 格式。Gateway 原生变量也为 `PGEVENTBUS_*`，另保留旧环境变量别名，但不会读取 CLI 的 TOML。
 
 Go/Python 直连客户端使用 `PGEVENTBUS_SCHEMA` 和外部命令的连接配置；HTTP 客户端的 schema 由网关决定。详见[配置与 CLI](docs/pg-eventbus-schema-and-cli-addendum.md)。
 
@@ -90,10 +96,13 @@ SQL 对象引用不带 schema 前缀。[docs/sql](docs/sql/README.md) 是唯一�
 
 ## HTTP 网关
 
-使用相同的数据源和 `bus` 配置启动：
+使用独立环境变量启动 Go 网关（先完成上述构建）：
 
 ```powershell
-java -jar gateway/target/pg-eventbus-gateway-0.0.1-SNAPSHOT.jar
+$env:PGEVENTBUS_DATABASE_URL = 'postgresql://localhost:5432/pg_eventbus'
+$env:PGEVENTBUS_DATABASE_USER = 'app_role'
+$env:PGEVENTBUS_DATABASE_PASSWORD = 'change-me'
+.\gateway\bin\pg-eventbus-gateway.exe
 ```
 
 所有 API 均为 POST：

@@ -1,8 +1,8 @@
 # PostgreSQL 事件总线：模型与实现
 
-本页依据当前 Go CLI、Java Gateway、各语言客户端及 `docs/sql/` 整理。原始 `PG-EventBus.mht` 为历史资料，不代表当前运行行为。文档与实现的对应入口见[文档索引](README.md)。
+本页依据当前 Go CLI、Go Gateway、各语言客户端及 `docs/sql/` 整理。原始 `PG-EventBus.mht` 为历史资料，不代表当前运行行为。文档与实现的对应入口见[文档索引](README.md)。
 
-CLI、Gateway 与各语言客户端是独立构建单元。CLI 使用 Go/pgx，Gateway 保持 Java/JDBC，各自持有 SQL 调用及结果模型；Java 直连库内部保留 core、jdbc 和 contract 包，但不再拆成独立模块。数据访问均直接执行 SQL，不使用 ORM。
+CLI、Gateway 与各语言客户端是独立构建单元。CLI 和 Gateway 均使用 Go/pgx，各自持有 SQL 调用及结果模型，Gateway 使用并发连接池；Java 直连库内部保留 core、jdbc 和 contract 包，但不再拆成独立模块。数据访问均直接执行 SQL，不使用 ORM。
 
 ## 数据模型
 
@@ -26,7 +26,7 @@ e.id > last_event_id
 AND (e.target_system = consumerName OR e.target_system IS NULL)
 ```
 
-因此，目标名称就是消费者路由名；NULL 目标为广播，空字符串不是广播。SQL/JDBC 可传 NULL 目标，网关请求 DTO 的 `targetSystem` 标有 `@NotBlank`，HTTP 公共输入契约不提供空目标广播。
+因此，目标名称就是消费者路由名；NULL 目标为广播，空字符串不是广播。SQL/JDBC 可传 NULL 目标，网关验证 `targetSystem` 非空白，HTTP 公共输入契约不提供空目标广播。
 
 消费者彼此拥有独立位点；同名消费者的实例共享位点。读取本身不更新位点。
 
@@ -96,7 +96,7 @@ Go/Python 直连版查询 `consumer_registry` 表；仅按上述函数授权无�
 
 - Go/Python 直连维护 SQL 将带分号的 SELECT 嵌入 `WITH effect AS (...)`，并且外层不引用该 CTE；不能将返回的 `executed` 视为维护已生效的可靠证据。
 - 两个行清理函数用 `ctid` 跨分区匹配删除，没有同时匹配 `tableoid`。不同分区可能有相同 ctid，实际删除范围和数量可能超过选出的批次，不能据此保证严格按位点/时间安全清理。
-- 网关没有自定义的全局错误信封转换、认证或消费者权限控制；正常返回的 `ApiResponse.success=true` 不等于拿锁或提交成功。
+- Go 网关业务入口返回统一失败信封并脱敏数据库错误；没有认证或消费者权限控制。正常返回的 `ApiResponse.success=true` 不等于拿锁或提交成功。未知路由/方法使用标准 404/405。
 - Go CLI、Java 门面及 Gateway 拉取 DTO 中的锁时间为 null、位点为 0，是服务组装的占位字段，不是 registry 的完整实时状态。
 - 仓库没有自动轮询、续租、重试或维护调度器。
 

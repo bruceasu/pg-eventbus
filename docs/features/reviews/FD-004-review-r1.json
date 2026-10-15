@@ -1,0 +1,84 @@
+{
+    "schema":  "aiw.fd.evidence.v1",
+    "kind":  "reviewer-report",
+    "fd_id":  "FD-004",
+    "source_event":  "FD-004-000004-implementation-ready",
+    "human_report":  "FD-004-review-r1.md",
+    "data":  {
+                 "reviewer_session":  "fd004-reviewer-20261016-b72c9e1a",
+                 "base_commit":  "fff50cc",
+                 "business_base":  "aa92083",
+                 "reviewed_commit":  "204dbf2a3e02be4ac76df2927b685a3a6351d54f",
+                 "fd_revision":  4,
+                 "review_number":  1,
+                 "outcome":  "changes-requested",
+                 "findings":  [
+                                  {
+                                      "id":  "R1",
+                                      "severity":  "P2",
+                                      "path":  "gateway/internal/api/instant.go",
+                                      "line":  33,
+                                      "acceptance":  [
+                                                         "AC-02",
+                                                         "AC-03",
+                                                         "1.3.1"
+                                                     ],
+                                      "summary":  "负小数 recover 未遵循既有 Jackson 的负整数秒加正纳秒规则",
+                                      "evidence":  "Java Instant -2s + 500000000ns serializes -2.500000000; Jackson parses -1.5s while Go parses -2.5s; inferred independently from local javap and source, no runtime",
+                                      "correction":  "按既有 Jackson 拆分数值时间，保留 ISO、解析资源及范围限制，更新证据并执行授权编译后复审"
+                                  }
+                              ],
+                 "commands":  [
+                                  "aiw fd show FD-004",
+                                  "aiw fd claim FD-004 FD-004-000004-implementation-ready --session fd004-reviewer-20261016-b72c9e1a",
+                                  "git diff --stat fff50cc..204dbf2",
+                                  "git diff --check fff50cc..204dbf2",
+                                  "git diff --name-only fff50cc..204dbf2 -- cli client docs/sql docs/features/archive",
+                                  "git show aa92083:\u003cold Java source paths\u003e",
+                                  "git diff fff50cc..204dbf2 -- \u003cdocumentation paths\u003e",
+                                  "git rev-parse HEAD; git status --short",
+                                  "Get-Content -Encoding utf8 / rg static source and evidence reads",
+                                  "javap -c -p -classpath \u003clocal Jackson 2.19.2 jsr310 jar\u003e DecimalUtils / InstantDeserializer / InstantSerializerBase"
+                              ],
+                 "results":  [
+                                 {
+                                     "acceptance":  "AC-01",
+                                     "outcome":  "supported-static"
+                                 },
+                                 {
+                                     "outcome":  "changes-requested",
+                                     "acceptance":  "AC-02",
+                                     "finding":  "R1"
+                                 },
+                                 {
+                                     "outcome":  "changes-requested",
+                                     "acceptance":  "AC-03",
+                                     "finding":  "R1"
+                                 },
+                                 {
+                                     "acceptance":  "AC-04",
+                                     "outcome":  "supported-static"
+                                 },
+                                 {
+                                     "acceptance":  "AC-05",
+                                     "outcome":  "supported-static"
+                                 },
+                                 {
+                                     "outcome":  "review-failed-delivery-pending",
+                                     "evidence":  "Worker reports two successful offline compile-only commands; reviewer did not repeat them",
+                                     "acceptance":  "AC-06"
+                                 }
+                             ],
+                 "skipped_checks":  [
+                                        "tests",
+                                        "additional compilation",
+                                        "HTTP/database/application execution",
+                                        "formatters/linters/vet",
+                                        "network",
+                                        "final build",
+                                        "push/deploy",
+                                        "optional fd-test report evaluation"
+                                    ],
+                 "residual_risk":  "Runtime PostgreSQL/HTTP/concurrency/cross-platform/shutdown remain unverified. Unexpected Serve failure may drain pool until existing request deadlines (up to 24h); normal signal shutdown has cancellation and 10s HTTP limit. SQL cleanup boundaries and absent auth remain recorded scope."
+             }
+}

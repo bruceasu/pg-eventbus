@@ -12,7 +12,7 @@
 
 所有客户端按语言放在 `client/<语言>/db` 与 `client/<语言>/gateway`，分别独立构建。独立的 Go CLI 使用 pgx；这里的 Go 直连客户端仍使用外部 psql，两者的连接方式与配置不能混用。
 
-直连 Go/Python 还存在额外差异：poll 不获取锁，查询 registry 要求表读权限，维护 SQL 有结构问题。需要完整锁编排时可通过网关走 Java 实现。Python 两个分发包均暴露 `pg_eventbus` 导入名，应安装在独立虚拟环境。
+直连 Go/Python 还存在额外差异：poll 不获取锁，查询 registry 要求表读权限，维护 SQL 有结构问题。需要先获取租约再拉取时可通过 Go 网关。Python 两个分发包均暴露 `pg_eventbus` 导入名，应安装在独立虚拟环境。
 
 ## Java 依赖与装配
 
@@ -120,11 +120,11 @@ HTTP 网关正常响应信封为：
 }
 ```
 
-客户端会解包 `data`。顶层 success 表示控制器正常完成，不表示获得锁或提交成功；网关没有统一异常处理器保证所有错误均为这一信封。
+客户端会解包 `data`。顶层 success 表示入口正常完成，不表示获得锁或提交成功。Go 网关的业务入口错误也使用失败信封；参数 400、体积超限 413、媒体类型 415、数据库失败 500、数据库请求期限超时 504。未知路由/方法使用标准 404/405；不保证代理和 HTTP 传输层错误也是 JSON。
 
 ## HTTP 路由与请求
 
-所有路由使用 POST，基础路径为 `/api/event-bus`。Gateway 的控制器和数据库服务以配置了 `spring.datasource.url` 为启用条件，不使用 `bus.enabled` 开关。
+所有路由使用 POST，基础路径为 `/api/event-bus`。Go Gateway 要求启动时有有效数据库 URL，不使用 `bus.enabled`。配置只读环境变量，详见 [Gateway 迁移说明](../gateway/README.md)。有请求体的路由要求 application/json（或 application/*+json），最大 1 MiB；未知属性忽略，必填字符串不能为空白，payload 不能缺失/null。
 
 | 相对路径 | JSON 请求体 |
 |---|---|
@@ -138,7 +138,7 @@ HTTP 网关正常响应信封为：
 | `/maintenance/drop-older-than/{keepMonths}` | 无 |
 | `/maintenance/cleanup-consumed` | 无；响应 data 为删除数量 |
 
-请求 DTO 定义见 [Gateway API 源码](../gateway/src/main/java/me/asu/pg_eventbus/gateway/api)。HTTP 时间示例使用带时区的 ISO-8601 字符串；Go CLI 的输出则使用数值型 epoch seconds，不能直接当作 HTTP 客户端 DTO JSON 使用。
+请求定义见 [Gateway API 源码](../gateway/internal/api/api.go)，结果模型见 [Gateway DTO](../gateway/internal/store/model.go)。HTTP 输出时间使用带时区 RFC3339Nano 字符串；recover 接受带时区字符串，也兼容 Java 客户端默认的数值 epoch seconds，数值长度/范围见 [Gateway README](../gateway/README.md)。Go CLI 输出使用数值型 epoch seconds，不能直接当作 HTTP 客户端 DTO JSON 使用。limit 缺失/null/非正数时使用配置批大小；keepMonths 接受有符号 int32；newLastId 为必填 int64。
 
 ## Java 发布与消费示例
 

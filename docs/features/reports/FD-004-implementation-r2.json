@@ -1,0 +1,28 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "worker-report",
+  "fd_id": "FD-004",
+  "source_event": "FD-004-000005-changes-requested",
+  "human_report": "FD-004-implementation-r2.md",
+  "data": {
+    "summary": "修复 R1 负小数 recover 的 Jackson 兼容，同时在异常退出关闭连接池前取消请求。",
+    "session": "fd004-host-20261016-5de84e0f",
+    "diff_base": "fff50cc",
+    "implementation_head": "3a987e7",
+    "prior_report": "FD-004-implementation-r1.md",
+    "review_outcomes_before_repair": 1,
+    "changed_paths": ["gateway/internal/api/instant.go", "gateway/main.go", "gateway/README.md", "docs/features/FD-004_REWRITE_GATEWAY_IN_GO.md"],
+    "commands": [
+      {"command": "git diff --check", "exit_code": 0},
+      {"command": "GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=off GOSUMDB=off go build -mod=readonly -o ../.cache/compile/pg-eventbus-gateway.exe .", "cwd": "gateway", "exit_code": 0, "run_number": 3, "reason": "实际评审修复后的 compile-only"}
+    ],
+    "results": [
+      {"finding": "R1/P2", "result": "repaired-static", "evidence": "负整数秒使用正纳秒，-0.x 保持负数，匹配 Jackson DecimalUtils(..., true)"},
+      {"item": "1.4.1", "result": "implemented-static", "evidence": "stop() 先于 pool.Close，异常退出也取消活跃请求"},
+      {"acceptance": "AC-01..AC-06", "result": "worker-complete-review-pending", "evidence": "R1 其余静态证据保留，本次修复后离线编译通过"}
+    ],
+    "unrun_checks": ["tests", "HTTP/PostgreSQL/application runtime", "Maven", "release builds", "formatters/linters/vet", "cross-platform", "network", "push/deploy"],
+    "blockers": [],
+    "residual_risk": "数据库/HTTP/并发/信号与平台行为未运行验证；Spring 文件/错误页需迁移；保留输入格式限制、无认证与原 SQL 风险。"
+  }
+}
