@@ -34,6 +34,8 @@ Gateway 可单独通过 Maven 生成可执行 JAR；CLI 使用 Go 独立构建�
 cd cli
 $env:GOTOOLCHAIN = 'local'
 $env:CGO_ENABLED = '0'
+go generate ./sql
+go run ./internal/cmd/gensql -source ../docs/sql -output sql/init.sql -check
 go build -o bin/pg-eventbus-cli.exe .
 ```
 
@@ -82,7 +84,7 @@ $cli = '.\cli\bin\pg-eventbus-cli.exe'
 
 `db init` 执行随 CLI 打包的 `init.sql`，安装表、函数并授权；它本身不预建分区。发布函数会确保当前分区存在。`ensure-future` 创建未来 6 个月分区。
 
-SQL 对象引用不带 schema 前缀。手动安装使用 `docs/sql/` 拆分脚本，在 bootstrap.sql 开头选择 schema 并调整授权角色；CLI 的 `sql/init.sql` 是内嵌安装模板，通过 `PGEVENTBUS_SCHEMA`、`--schema` 或 TOML 的 database.schema 渲染。具体步骤见[初始化说明](docs/pg-eventbus-schema-and-cli-addendum.md#数据库初始化)。
+SQL 对象引用不带 schema 前缀。[docs/sql](docs/sql/README.md) 是唯一维护来源，按三位编号安装；手工安装在副本中修改 001_bootstrap.sql 的 schema 和 990_grant_access.sql 的角色。CLI 的 `sql/init.sql` 是生成并内嵌的模板，通过 `PGEVENTBUS_SCHEMA`、`--schema` 或 TOML 的 database.schema 渲染。修改源 SQL 后在 cli/ 运行 `go generate ./sql`，不要直接编辑生成物。
 
 `targetSystem` 必须与消费者名称一致才会被该消费者拉取；SQL 中空目标（`NULL`）表示广播。`poll` 不自动提交位点，业务处理完成后才调用 `commit`。Java/网关的拉取会获取租约锁，提交要求同一实例持有未过期锁。提交不会释放锁，租约未到期时再次拉取（即使同一实例）也会拿锁失败。
 
@@ -136,6 +138,8 @@ Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/event-bus/events'
 - [客户端接口、Java 装配与消费示例](docs/pg-eventbus-client-guide.md)
 - [schema 配置、初始化、CLI 与维护](docs/pg-eventbus-schema-and-cli-addendum.md)
 - [数据库模型、消费语义与实现限制](docs/PG-EventBus.md)
+- [SQL 执行顺序与生成流程](docs/sql/README.md)
+- [将来接入 Flyway 的处理方式](docs/flyway-adoption.md)
 - [Java HTTP](client/java/gateway/README.md)、[Go 直连](client/go/db/README.md)、[Go HTTP](client/go/gateway/README.md)、[Python 直连](client/python/db/README.md)、[Python HTTP](client/python/gateway/README.md)
 
 `docs/PG-EventBus.mht` 和 `docs/superpowers/plans/` 保留为历史设计资料；实际行为以代码和当前使用文档为准。

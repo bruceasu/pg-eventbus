@@ -82,11 +82,11 @@ SQL 的 `schedule_retry` 按传入计数计算延迟：`min(2^retryCount 秒, 1 
 
 ## SQL 安装与权限
 
-`docs/sql/bootstrap.sql` 仅创建 schema、表和索引，不安装完整函数集。CLI 内嵌模板为 `cli/sql/init.sql`，按依赖顺序合并 SQL，并包含事务和授权。Go 在限定标记处引用 schema、将角色作为 format(%I) 的字符串参数渲染；模板不可直接手工执行。
+`docs/sql/001_bootstrap.sql` 仅创建 schema、表和索引，不安装完整函数集。完整安装按编号执行直到 `990_grant_access.sql`，顺序见 [SQL 来源说明](sql/README.md)。CLI 内嵌模板 `cli/sql/init.sql` 由这些来源自动生成，包含事务和授权。Go 在限定标记处引用 schema、将角色作为 format(%I) 的字符串参数渲染；模板不可直接手工执行。
 
-修改拆分 SQL 后，还需同步合并脚本；构建配置没有自动生成步骤。合并脚本不包含预建当前/未来分区的执行语句。
+只维护编号源文件，修改后在 cli/ 执行 `go generate ./sql`，再运行生成工具的 -check 检查并同时提交源与生成物；Go build 不会隐式执行生成。生成物不包含预建当前/未来分区的执行语句。编号是安装顺序；未来版本升级与已有数据库接管见 [Flyway 接入说明](flyway-adoption.md)。
 
-函数使用 `SECURITY DEFINER`，通过 `SET search_path FROM CURRENT` 保存安装时选择的 schema 和末尾的 `pg_temp`；`pg_catalog` 隐式优先查找。`grant_access.sql` 撤销授权角色对 schema 中表和序列的权限，再授予 schema USAGE 和全部函数 EXECUTE。该脚本没有撤销 PUBLIC 的函数执行权限，也没有区分发布、消费和维护权限。
+函数使用 `SECURITY DEFINER`，通过 `SET search_path FROM CURRENT` 保存安装时选择的 schema 和末尾的 `pg_temp`；`pg_catalog` 隐式优先查找。`990_grant_access.sql` 撤销授权角色对 schema 中表和序列的权限，再授予 schema USAGE 和全部函数 EXECUTE。该脚本没有撤销 PUBLIC 的函数执行权限，也没有区分发布、消费和维护权限。
 
 Go/Python 直连版查询 `consumer_registry` 表；仅按上述函数授权无法满足该查询，需额外的表读权限或调整客户端实现。
 

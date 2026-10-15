@@ -1,0 +1,33 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "reviewer-report",
+  "fd_id": "FD-003",
+  "source_event": "FD-003-000004-implementation-ready",
+  "human_report": "FD-003-review-r1.md",
+  "data": {
+    "reviewer_session": "fd003-reviewer-20261015-6f08ea94",
+    "base_commit": "c188b2f",
+    "reviewed_commit": "130ca7f",
+    "fd_revision": 4,
+    "review_number": 1,
+    "outcome": "verification-passed",
+    "findings": [],
+    "commands": [
+      "aiw fd resume FD-003",
+      "aiw fd claim FD-003 FD-003-000004-implementation-ready --session fd003-reviewer-20261015-6f08ea94",
+      "Get-Content -Encoding utf8 on FD, Worker evidence, generator, SQL, Initialize and docs; rg --files",
+      "git diff --stat c188b2f; git diff c188b2f -- <paths>; git diff --name-status -M c188b2f -- docs/sql",
+      "git diff --check; git status --short; git rev-parse HEAD",
+      "git diff --name-only c188b2f -- gateway client cli/internal/db cli/internal/app cli/main.go cli/go.mod cli/go.sum docs/features/archive"
+    ],
+    "results": [
+      "AC-01 through AC-05 supported by independent static review and recorded Worker generation/compile evidence",
+      "22 ordered SQL sources; bootstrap and 20 function source files are exact R100 renames; generated function definitions unchanged",
+      "Scoped anchors, role string/identifier contexts, ordering and pre-write error paths reviewed",
+      "Current installation and future Flyway lifecycle clearly separated",
+      "Whitespace check passed; protected runtime/client/Gateway/history paths unchanged"
+    ],
+    "skipped_checks": ["Reviewer generator execution/check", "invalid-input probes", "additional compilation", "tests", "CLI execution", "database/psql/Flyway operations", "formatters", "linters", "release builds", "cross-platform runtime"],
+    "residual_risk": "Failure branches only statically reviewed; cross-platform replacement, PostgreSQL effects and future Flyway baseline/adoption remain runtime-unverified."
+  }
+}

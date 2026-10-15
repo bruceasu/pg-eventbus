@@ -1,0 +1,40 @@
+{
+  "schema": "aiw.fd.evidence.v1",
+  "kind": "worker-report",
+  "fd_id": "FD-003",
+  "source_event": "FD-003-000003-design-ready",
+  "human_report": "FD-003-implementation-r1.md",
+  "data": {
+    "summary": "Numbered 22 SQL sources, standard-library deterministic generator/check, canonical source docs and future Flyway adoption guide.",
+    "worker_session": "fd003-worker-20261015-sql",
+    "base_commit": "c188b2f",
+    "changed_paths": [
+      "docs/sql/",
+      "cli/internal/cmd/gensql/main.go",
+      "cli/sql/",
+      "README.md",
+      "cli/README.md",
+      "docs/PG-EventBus.md",
+      "docs/pg-eventbus-schema-and-cli-addendum.md",
+      "docs/flyway-adoption.md"
+    ],
+    "commands": [
+      "read current SQL/CLI and official Redgate documentation",
+      "GOTOOLCHAIN=local GOPROXY=off go generate ./sql",
+      "GOTOOLCHAIN=local GOPROXY=off go run ./internal/cmd/gensql -source ../docs/sql -output sql/init.sql -check",
+      "static function extraction/comparison against git show c188b2f:cli/sql/init.sql",
+      "GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=off go build -o ../.cache/compile/ ./...",
+      "git diff --check",
+      "protected-path git diff --name-only; active Markdown links and stale-reference search"
+    ],
+    "results": [
+      "22 ordered source paths match generated source sequence",
+      "all 20 function definitions identical across old template, new source files and generated template",
+      "generation and byte comparison passed on Windows; template markers and outer transaction boundaries statically verified",
+      "CLI and generator compile-only passed; executables not run",
+      "protected application/database/client/Gateway/history paths unchanged",
+      "no tests, invalid-input execution probes, PostgreSQL/Flyway/psql, Linux runtime, formatters, linters or release build executed"
+    ],
+    "residual_risk": "Only static evidence for rejection/error branches; cross-platform replacement and actual PostgreSQL/Flyway behavior remain unverified. go generate is explicit and not implicitly run by go build."
+  }
+}

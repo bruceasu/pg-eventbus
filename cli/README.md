@@ -6,6 +6,8 @@
 cd cli
 $env:GOTOOLCHAIN = 'local'
 $env:CGO_ENABLED = '0'
+go generate ./sql
+go run ./internal/cmd/gensql -source ../docs/sql -output sql/init.sql -check
 go build -o bin/pg-eventbus-cli.exe .
 $env:PGEVENTBUS_DATABASE_URL = 'postgresql://localhost:5432/pg_eventbus'
 $env:PGEVENTBUS_DATABASE_USER = 'postgres'
@@ -17,7 +19,7 @@ $env:PGEVENTBUS_SCHEMA = 'analytics'
 .\bin\pg-eventbus-cli.exe maintenance run
 ```
 
-Linux amd64：在本目录执行 `CGO_ENABLED=0 GOTOOLCHAIN=local GOOS=linux GOARCH=amd64 go build -o bin/pg-eventbus-cli .`；Windows 目标使用 `GOOS=windows GOARCH=amd64`。无需复制仓库，二进制自带 `sql/init.sql`。`app_role` 须提前创建。该 SQL 是带渲染标记的安装模板，不应直接手工执行；手动安装使用 `docs/sql/` 的拆分脚本。
+Linux amd64：在本目录执行 `CGO_ENABLED=0 GOTOOLCHAIN=local GOOS=linux GOARCH=amd64 go build -o bin/pg-eventbus-cli .`；Windows 目标使用 `GOOS=windows GOARCH=amd64`。二进制自带 `sql/init.sql`，运行无需仓库。该文件是生成模板，不应直接编辑或手工执行；唯一维护来源和手工安装顺序见 [docs/sql](../docs/sql/README.md)。Go build 不自动生成：完整仓库修改 SQL 后运行上述生成/检查命令；只复制 cli/ 时可使用已提交产物直接构建。`app_role` 须提前创建。
 
 保留 `db init`、`partition`、`event send|publish`、`event get|poll`、`event set-cursor|commit`、`event recover`、`maintenance run`；不预建分区，不自动提交位点或释放租约。使用 `--help` 查看语法，help 不连接数据库。
 

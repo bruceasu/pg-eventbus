@@ -64,7 +64,7 @@ Go 使用 `NewWithSchema("analytics")`；Python 使用 `PgEventBusClient(schema=
 
 ## 数据库初始化
 
-手动安装时，修改 `docs/sql/bootstrap.sql` 开头的 schema 创建及搜索路径语句，再在同一会话按依赖顺序执行拆分脚本，例如：
+手动安装时，先将 docs/sql 的编号脚本复制到安装目录，再修改副本中 `001_bootstrap.sql` 开头的 schema 创建及搜索路径语句，并在同一会话按编号执行，例如：
 
 ```sql
 CREATE SCHEMA IF NOT EXISTS analytics;
@@ -73,7 +73,7 @@ SET search_path = analytics, pg_temp;
 
 CLI 的合并模板则使用 `BEGIN/COMMIT` 和事务内 `SET LOCAL`。表、函数及函数体中的对象引用均不带 schema 前缀；函数通过 `SET search_path FROM CURRENT` 保存安装时的搜索路径，因此调用方无需设置相同路径。`pg_catalog` 隐式优先查找，`pg_temp` 显式放在末尾。安装 schema 仅应允许可信的 DDL 账号创建对象。
 
-手动执行前，还需将授权脚本中的 `app_role` 改为已存在的应用角色；授权和分区检查自动使用选定 schema。拆分安装时，先修改 `docs/sql/bootstrap.sql` 中的 `CREATE SCHEMA` 和 `SET search_path`，再在同一连接内按依赖顺序执行其余脚本。CLI 安装使用 TOML 的 database.schema、`--schema` 或 `PGEVENTBUS_SCHEMA` 选择 schema，运行时也应使用相同名称。
+手动执行前，还需将副本 `990_grant_access.sql` 中 v_role 的 app_role 字符串改为已存在的应用角色；授权和分区检查自动使用选定 schema。先执行 001，再按数字顺序执行各函数文件，最后 990 授权；所有文件使用同一连接，建议外围事务及遇错停止。不要修改仓库内生成锚点来适配某个部署，完整顺序和 psql 示例见 [SQL 来源说明](sql/README.md)。CLI 安装使用 TOML 的 database.schema、`--schema` 或 `PGEVENTBUS_SCHEMA`，运行时也应使用相同名称。
 
 先创建数据库和授权角色，再用具有 DDL 和授权权限的账号配置数据源并执行：
 
@@ -84,7 +84,7 @@ $cli = '.\cli\bin\pg-eventbus-cli.exe'
 
 角色参数省略时读取 `PGEVENTBUS_DB_OWNER`。名称虽然在代码中称为 owner，实际只替换 SQL 的授权对象 `app_role`，不创建角色、不转移对象所有权。函数和对象归执行 DDL 的账号所有。
 
-CLI 使用 `go:embed` 内嵌 `cli/sql/init.sql` 模板，只渲染 schema/owner 标记，通过同一连接的 simple protocol 完整执行事务脚本，不按分号拆分。失败时尝试同连接 ROLLBACK，然后关闭连接。删除原 classpath、`PGEVENTBUS_SQL_DIR` 和向上查找 docs 的回退；程序复制到仓库外仍自带初始化 SQL。该模板带有标记，不可直接手工执行。
+CLI 使用 `go:embed` 内嵌 `cli/sql/init.sql` 生成模板，只渲染 schema/owner 标记，通过同一连接的 simple protocol 完整执行事务脚本，不按分号拆分。失败时尝试同连接 ROLLBACK，然后关闭连接。只在 docs/sql 修改编号来源，再在 cli/ 运行 `go generate ./sql` 和 `go run ./internal/cmd/gensql -source ../docs/sql -output sql/init.sql -check`，同时提交来源和生成物；不直接修改 init.sql。Go build 不自动生成，CLI 运行时也不访问 docs/sql，复制到仓库外仍自带 SQL。未来版本化管理另见 [Flyway 方案](flyway-adoption.md)。
 
 `db init` **不预建分区**。需要立即预建时：
 

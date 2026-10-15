@@ -1,7 +1,7 @@
 # FD-003: SQL 顺序编号、唯一来源与初始化脚本生成
 
-**Status:** Open
-**Revision:** 3
+**Status:** Complete
+**Revision:** 5
 **Priority:** Medium
 **Evidence policy:** Dual
 
@@ -40,10 +40,10 @@ docs/sql/README.md 列出全部顺序、同连接与事务要求、schema/角色
 
 ### TODO
 
-- [ ] 1.1 编号 SQL 来源。
-- [ ] 1.2 生成器和一致性检查。
-- [ ] 1.3 当前与未来说明。
-- [ ] 1.4 编译和静态证据。
+- [x] 1.1 编号 SQL 来源。
+- [x] 1.2 生成器和一致性检查。
+- [x] 1.3 当前与未来说明。
+- [x] 1.4 编译和静态证据。
 
 ## Acceptance
 
@@ -60,6 +60,20 @@ docs/sql/README.md 列出全部顺序、同连接与事务要求、schema/角色
 默认静态核验 + 编译：比较基线与新来源/生成物的 20 个函数定义，核对来源序列及仅有的安装转换、事务/角色语境和文件写入失败分支；执行 git diff --check。一次 GOTOOLCHAIN=local CGO_ENABLED=0 GOPROXY=off go build -o ../.cache/compile/ ./... 同时编译 CLI 和生成工具，不启动临时程序或数据库。未授权测试/formatter/linter/最终构建；不把生成器 -check 当作数据库或集成测试。
 
 未来 Flyway 文档基于本次只读查阅的 Redgate 官方 versioned/repeatable/baseline/baselineOnMigrate 说明，链接留在文档。Flyway 实际执行、已有数据库基线真实性、跨平台原子替换和 PostgreSQL 运行效果尚未验证，保留风险。
+
+### Worker evidence
+
+- Worker session fd003-worker-20261015-sql; source event FD-003-000003-design-ready.
+- Worktree main / feature/FD-003 / .wt/FD-003 verified; isolation base c188b2f.
+- All four work items implemented. Actual go generate and generator -check passed; offline CLI/generator compile-only passed. Source comparison confirms 20 unchanged function definitions and 22 ordered files.
+- Dual report: docs/features/reports/FD-003-implementation-r1.md and JSON. No tests, SQL execution, Flyway operation, application runtime or release builds.
+- No active blocker. Independent Reviewer pending; runtime risks remain recorded.
+
+### Reviewer R1
+
+- Reviewer session `fd003-reviewer-20261015-6f08ea94`, exact source event `FD-003-000004-implementation-ready`; reviewed HEAD `130ca7f` against `c188b2f`.
+- Outcome **verification-passed**, first outcome in this cycle, no blocking finding or acceptance waiver. Independent static review covers actual source/generator diff, template role/transaction context, error paths, current docs and future Flyway ownership boundaries.
+- Dual evidence: `docs/features/reviews/FD-003-review-r1.md` plus JSON. No Reviewer generator execution, extra compilation, tests, application/database/Flyway operation or platform execution; Worker generation/compile evidence and residual risks recorded separately.
 
 ## Sources
 
