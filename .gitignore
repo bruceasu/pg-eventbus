@@ -18,6 +18,8 @@ target/
 *.swn
 .env
 .worktrees/
+.ai/
+.wt/
 .github
 .vscode
 __pycache__/
